@@ -1,0 +1,27 @@
+# ==================================================
+# Confluent Cloud Configuration
+# ==================================================
+#
+# How to use:
+# 1. Fill in the values for your Confluent Cloud cluster and API keys.
+# 2. Rename this file to `ccloud.properties`.
+# 3. Ensure `ccloud.properties` is in your .gitignore to prevent committing secrets.
+
+# --- Kafka Cluster Connection ---
+# Your Confluent Cloud bootstrap server URL
+bootstrap.servers=lkc-00000-00000000.region.provider.confluent.cloud:9092
+
+# --- Application API Key (Read/Write) ---
+# Used by the simulator and replayer
+sasl.username=<YOUR_APPLICATION_API_KEY>
+sasl.password=<YOUR_APPLICATION_API_SECRET>
+
+# --- Admin API Key (for Collector) ---
+# Note: The collector will need separate logic to load these.
+# For now, this is a placeholder for the required credentials.
+admin.sasl.username=<YOUR_ADMIN_API_KEY>
+admin.sasl.password=<YOUR_ADMIN_API_SECRET>
+
+# --- Standard Kafka Security Settings ---
+security.protocol=SASL_SSL
+sasl.mechanisms=PLAIN

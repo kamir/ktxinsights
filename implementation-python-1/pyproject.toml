@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "txinsights"
+version = "0.1.0"
+authors = [
+  { name="Mirko Kaempf", email="info@mirkokaempf.com" },
+]
+description = "A Python package for Kafka transaction visibility."
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "confluent-kafka",
+    "prometheus-client",
+    "matplotlib",
+]
+
+[project.scripts]
+tx-simulate = "txinsights.cli.simulate:main"
+tx-replay = "txinsights.cli.replay:main"
+tx-aggregate = "txinsights.cli.aggregate:main"
+tx-report = "txinsights.cli.report:main"
+tx-collect = "txinsights.cli.collect:main"
+
+[project.urls]
+"Homepage" = "https://github.com/kamir/cflt-ps-ppi-tx-monitoring"
+"Issues" = "https://github.com/kamir/cflt-ps-ppi-tx-monitoring/issues"

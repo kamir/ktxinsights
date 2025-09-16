@@ -1,0 +1,25 @@
+{
+    "transaction_durations": {
+        "unit": "seconds",
+        "count": 100,
+        "avg": 35.72972,
+        "median": 34.8755,
+        "p90": 40.194,
+        "p95": 48.385,
+        "p99": 52.036
+    },
+    "inter_step_gaps": {
+        "unit": "seconds",
+        "count": 900,
+        "avg": 1.147261111111111,
+        "median": 0.9924999999999999,
+        "p90": 1.409,
+        "p95": 1.458,
+        "p99": 1.499
+    },
+    "outliers": {
+        "threshold_ms": 15000,
+        "detected_count": 9,
+        "injected_count": 9
+    }
+}
