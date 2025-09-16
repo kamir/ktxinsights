@@ -212,7 +212,4 @@ txinsights_transactions_confirmed{...}
 **Summary:** This combined solution delivers both **broker-level** and **business-level** transaction insight. By reconciling coordinator state, consumer lag, and application events, it provides reliable closure detection, early stuck/abort alerts, and clear attribution of delays to either the **pipes** or the **application**.
 
 
-10) Alerts (Alertmanager)
-	•	Open TX Age High
-	•	Expr: txinsights_open_transactions{age_bin="gt_15m"} > 0 for 5m
-	•	Action: page SRE
+ 
