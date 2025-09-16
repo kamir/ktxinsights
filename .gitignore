@@ -214,3 +214,5 @@ venv/
 .venv/
 
 ccloud.properties
+*/ccloud.properties
+*/implementation-python-1/ccloud.properties
