@@ -1,5 +1,5 @@
 
-<img width="602" height="173" alt="image" src="https://github.com/user-attachments/assets/093e0174-7c1d-4e05-a714-bbfde1bf7445" />
+<img width="100%" alt="image" src="https://github.com/user-attachments/assets/093e0174-7c1d-4e05-a714-bbfde1bf7445" />
 
 # Transaction Insights (`ktxinsights`)
 
