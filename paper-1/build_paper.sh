@@ -21,7 +21,7 @@ then
 fi
 
 # Convert the markdown file to PDF
-pandoc paper.md \
+pandoc ktxinsights_paper.md \
     --pdf-engine=xelatex \
     -o ktxinsights_paper.pdf \
     -V geometry:"margin=1in" \
