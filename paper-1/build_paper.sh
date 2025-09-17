@@ -29,5 +29,13 @@ pandoc ktxinsights_paper.md \
     --top-level-division=chapter \
     --table-of-contents
 
+pandoc draft-2.md \
+    --pdf-engine=xelatex \
+    -o ktxinsights_paper_v2.pdf \
+    -V geometry:"margin=1in" \
+    -V fontsize=12pt \
+    --top-level-division=chapter \
+    --table-of-contents
+
 echo "--- Build Complete ---"
-echo "PDF is available at paper-1/ktxinsights_paper.pdf"
+echo "PDF is available at paper-1/ktxinsights_paper_(v2).pdf"
