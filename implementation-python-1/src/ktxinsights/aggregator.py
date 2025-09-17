@@ -70,14 +70,25 @@ TIL_GAUGE = Gauge(
     "Time delta between the newest open and oldest unresolved transaction",
 )
 
-HIGH_WATERMARK_OPEN_TXN_GAUGE = Gauge(
-    "ktxinsights_high_watermark_open_transactions_timestamp_seconds",
-    "Timestamp of the most recently opened transaction that is not yet resolved",
+VALIDATOR_LSO_LAG = Gauge(
+    "ktxinsights_validator_lso_lag",
+    "Lag between the validator consumer's position and the partition's LSO",
+    labelnames=("topic", "partition"),
 )
 
-LOW_WATERMARK_UNRESOLVED_TXN_GAUGE = Gauge(
-    "ktxinsights_low_watermark_unresolved_transactions_timestamp_seconds",
-    "Timestamp of the oldest transaction that is not yet resolved",
+OPEN_TX_MAX_TIMESTAMP_GAUGE = Gauge(
+    "ktxinsights_open_transaction_max_timestamp_seconds",
+    "Timestamp of the most recently opened transaction that is not yet resolved (previously high_watermark)",
+)
+
+UNRESOLVED_TX_MIN_TIMESTAMP_GAUGE = Gauge(
+    "ktxinsights_unresolved_transaction_min_timestamp_seconds",
+    "Timestamp of the oldest transaction that is not yet resolved (previously low_watermark)",
+)
+
+UNRESOLVED_TRANSACTION_AGE_P95_SECONDS = Gauge(
+    "ktxinsights_unresolved_transaction_age_p95_seconds",
+    "The age of the 95th percentile oldest unresolved transaction, providing a robust measure of processing health.",
 )
 
 
@@ -85,21 +96,50 @@ LOW_WATERMARK_UNRESOLVED_TXN_GAUGE = Gauge(
 # Aggregation Logic
 # ---------------------------
 class TransactionState:
-    """Models the state of a single business transaction."""
-    def __init__(self, txn_id: str, open_ts: int):
+    """Models the state of a single business transaction, including all its constituent steps."""
+    def __init__(self, txn_id: str, open_ts: int, producer_epoch: int, expected_steps: set):
         self.txn_id = txn_id
+        self.producer_epoch = producer_epoch
         self.state = "open"  # open, tentatively_closed, closed, aborted, verified_aborted
         self.open_ts = open_ts
-        self.tentative_close_ts: Optional[int] = None
-        self.close_ts: Optional[int] = None
         self.last_update_ts = open_ts
+        
+        # State for multi-step transactions
+        self.expected_steps = expected_steps
+        self.observed_steps = set()
+        self.is_closed = False
+
+    def add_step(self, step_name: str, ts: int):
+        """Records that a step of the transaction has been observed."""
+        if step_name in self.expected_steps:
+            self.observed_steps.add(step_name)
+            self.last_update_ts = ts
+            # If a step arrives after we thought the transaction was complete,
+            # we must reopen it for reconsideration.
+            if self.state == "tentatively_closed":
+                self._revert_to_open()
+            self._check_if_complete()
+    
+    def _revert_to_open(self):
+        """Reverts a tentatively_closed transaction back to open state."""
+        print(f"[{self.txn_id}] State change: tentatively_closed -> open (late step arrived)")
+        self.state = "open"
+        TXN_STATE_GAUGE.labels("tentatively_closed").dec()
+        TXN_STATE_GAUGE.labels("open").inc()
 
     def tentatively_close(self, ts: int):
+        """Marks the entire transaction as tentatively closed."""
         if self.state == "open":
-            print(f"[{self.txn_id}] State change: open -> tentatively_closed")
-            self.state = "tentatively_closed"
-            self.tentative_close_ts = ts
+            self.is_closed = True
             self.last_update_ts = ts
+            self._check_if_complete()
+
+    def _check_if_complete(self):
+        """Checks if all expected steps have been observed and the transaction is marked as closed."""
+        # This check is now idempotent. It can be called multiple times.
+        if self.state == "open" and self.is_closed and self.observed_steps == self.expected_steps:
+            print(f"[{self.txn_id}] State change: open -> tentatively_closed (all steps observed)")
+            self.state = "tentatively_closed"
             TXN_STATE_GAUGE.labels("open").dec()
             TXN_STATE_GAUGE.labels("tentatively_closed").inc()
 
@@ -107,11 +147,10 @@ class TransactionState:
         if self.state == "tentatively_closed":
             print(f"[{self.txn_id}] State change: tentatively_closed -> closed")
             self.state = "closed"
-            self.close_ts = ts
             self.last_update_ts = ts
             TXN_STATE_GAUGE.labels("tentatively_closed").dec()
             TXN_STATE_GAUGE.labels("closed").inc()
-            TXN_LIFETIME.observe((self.close_ts - self.open_ts) / 1000.0)
+            TXN_LIFETIME.observe((self.last_update_ts - self.open_ts) / 1000.0)
 
     def abort(self, ts: int):
         if self.state in ("open", "tentatively_closed"):
@@ -164,9 +203,24 @@ class Aggregator:
                 return
 
             if et == "transaction_open":
-                if txn_id not in self.transactions:
-                    self.transactions[txn_id] = TransactionState(txn_id, int(ev["ts_ms"]))
+                # TODO: The set of expected steps should be configurable per transaction type.
+                # For now, we'll use a hardcoded default.
+                expected = {"stepA", "stepB", "stepC"}
+                producer_epoch = ev.get("producer_epoch", -1)
+
+                # Idempotency check: only create a new state if the epoch is higher
+                existing_txn = self.transactions.get(txn_id)
+                if not existing_txn or producer_epoch > existing_txn.producer_epoch:
+                    self.transactions[txn_id] = TransactionState(
+                        txn_id, int(ev["ts_ms"]), producer_epoch, expected
+                    )
                     TXN_STATE_GAUGE.labels("open").inc()
+
+            elif et == "transaction_step":
+                txn = self.transactions.get(txn_id)
+                step_name = ev.get("step_name")
+                if txn and step_name:
+                    txn.add_step(step_name, int(ev["ts_ms"]))
 
             elif et == "transaction_close":
                 txn = self.transactions.get(txn_id)
@@ -212,21 +266,29 @@ class Aggregator:
                 ]
                 
                 if open_transactions:
-                    high_watermark = max(t.open_ts for t in open_transactions)
-                    low_watermark = min(t.open_ts for t in open_transactions)
-                    high_watermark_ts_sec = high_watermark / 1000.0
-                    low_watermark_ts_sec = low_watermark / 1000.0
-                    til_seconds = high_watermark_ts_sec - low_watermark_ts_sec
+                    # Sort transactions by open timestamp to find min, max, and percentiles
+                    sorted_transactions = sorted(open_transactions, key=lambda t: t.open_ts)
                     
+                    # Min/Max and TIL calculation (the original, simple metric)
+                    min_open_ts = sorted_transactions[0].open_ts
+                    max_open_ts = sorted_transactions[-1].open_ts
+                    til_seconds = (max_open_ts - min_open_ts) / 1000.0
                     TIL_GAUGE.set(til_seconds)
-                    HIGH_WATERMARK_OPEN_TXN_GAUGE.set(high_watermark_ts_sec)
-                    LOW_WATERMARK_UNRESOLVED_TXN_GAUGE.set(low_watermark_ts_sec)
+                    OPEN_TX_MAX_TIMESTAMP_GAUGE.set(max_open_ts / 1000.0)
+                    UNRESOLVED_TX_MIN_TIMESTAMP_GAUGE.set(min_open_ts / 1000.0)
+
+                    # P95 age calculation (the new, more robust metric)
+                    p95_index = int(len(sorted_transactions) * 0.95)
+                    p95_transaction = sorted_transactions[p95_index]
+                    p95_age_seconds = (now - p95_transaction.open_ts) / 1000.0
+                    UNRESOLVED_TRANSACTION_AGE_P95_SECONDS.set(p95_age_seconds)
+
                 else:
+                    # If there are no open transactions, all metrics are zero.
                     TIL_GAUGE.set(0)
-                    # If there are no open transactions, the watermarks are undefined,
-                    # but setting them to 0 is a reasonable default for Prometheus.
-                    HIGH_WATERMARK_OPEN_TXN_GAUGE.set(0)
-                    LOW_WATERMARK_UNRESOLVED_TXN_GAUGE.set(0)
+                    OPEN_TX_MAX_TIMESTAMP_GAUGE.set(0)
+                    UNRESOLVED_TX_MIN_TIMESTAMP_GAUGE.set(0)
+                    UNRESOLVED_TRANSACTION_AGE_P95_SECONDS.set(0)
 
                 # Clean up very old completed/aborted transactions
                 old_ids = [
@@ -275,9 +337,29 @@ def kafka_consumer_worker(
     consumer.subscribe(topics)
     print(f"[{consumer_type.upper()}] Consumer started for group '{group_id}' with isolation level '{isolation_level}'")
 
+    last_lso_check = 0
     try:
         while True:
             msg = consumer.poll(1.0)
+
+            # Periodically check LSO lag for the validator
+            now = time.time()
+            if consumer_type == "validator" and (now - last_lso_check) > 10:
+                last_lso_check = now
+                for tp in consumer.assignment():
+                    try:
+                        _low, high = consumer.get_watermark_offsets(tp, timeout=2)
+                        committed = consumer.committed([tp], timeout=2)
+                        
+                        if committed and committed[0].offset > 0:
+                            # confluent-kafka-python doesn't directly expose LSO.
+                            # The high watermark for a read_committed consumer is effectively the LSO.
+                            lso = high
+                            lag = lso - committed[0].offset
+                            VALIDATOR_LSO_LAG.labels(topic=tp.topic, partition=tp.partition).set(lag)
+                    except Exception as e:
+                        sys.stderr.write(f"[VALIDATOR-LSO-WARN] Could not get LSO lag for {tp}: {e}\n")
+
             if msg is None:
                 continue
             if msg.error():

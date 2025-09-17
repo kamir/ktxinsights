@@ -48,12 +48,12 @@ Understanding the role of the Coordinator is crucial, as it is the ultimate sour
 
 A core concept in Kafka is the **offset**, which is a unique, sequential ID assigned to each message within a partition. Consumers track their progress by committing the offset of the last message they have successfully processed.
 
-Two important metrics related to offsets are:
+For transactional systems, two offsets are critical:
 
-*   **Low Watermark (LWM):** This is the offset of the first available message in a partition.
-*   **High Watermark (HWM):** This is the offset of the last successfully produced message that is available for consumption. For transactional producers, this is also known as the "Last Stable Offset" (LSO), and it only advances when a transaction is committed.
+*   **High Watermark (HW):** The offset of the last message physically written to a partition's log. This is the replication boundary.
+*   **Last Stable Offset (LSO):** The offset of the last message that is part of a successfully committed transaction. This is the consumer-visible boundary for `read_committed` consumers.
 
-**Consumer Lag** is the difference between the High Watermark and the consumer's last committed offset. It represents the number of messages that have been produced but not yet consumed. A consistently high or growing lag is a key indicator of a performance problem. Our dual-consumer approach leverages this concept by intentionally creating two consumers with different views of the High Watermark, which is the foundation of our state tracking.
+**Validator lag and correctness must be measured vs LSO.** Equating HW with LSO is a common monitoring anti-pattern that leads to skewed lag metrics and incorrect "not seeing messages" diagnoses. The `ktxinsights` toolkit's validator consumer is specifically designed to measure its lag against the LSO, providing an accurate view of transactional processing health.
 
 ## 3. Our Approach: The `ktxinsights` Toolkit
 
@@ -70,21 +70,38 @@ By reconciling the event streams from these two consumers, the aggregator can bu
 
 ### 3.2. The Coordinator Collector
 
-To achieve a complete picture, our architecture includes a `CoordinatorCollector` service. This component connects to the Kafka cluster's Admin API to periodically fetch the list of ongoing transactions directly from the transaction coordinator. This infrastructure-level truth is published to an internal topic and consumed by the aggregator, allowing for a three-way correlation between the application's intended state, the committed state, and the broker's internal state.
+To achieve a complete picture, our architecture includes a `CoordinatorCollector` service. This component is designed for robust, production-ready operation. It connects to the Kafka cluster's Admin API and polls for the list of ongoing transactions.
+
+**Operational Considerations:**
+*   **Polling Strategy:** The collector uses a configurable poll interval (e.g., 15-30 seconds) with exponential backoff and jitter to handle transient broker issues gracefully and avoid creating "thundering herd" problems.
+*   **Filtering and Overhead:** In a multi-tenant cluster, fetching all transactions can be expensive. The collector can filter transactions based on `transactional.id` prefixes or regular expressions, allowing operators to focus on specific services and minimize overhead.
+*   **Permissions and Restricted Environments:** The collector requires `CLUSTER:DESCRIBE` ACLs to function. In restricted environments where such permissions are not granted, the collector can be run in a `--read-only` mode (the default), where it will not attempt any state-altering operations. It fails gracefully with clear error messages if permissions are insufficient.
+
+This infrastructure-level truth is published to an internal topic and consumed by the aggregator, allowing for a three-way correlation between the application's intended state, the committed state, and the broker's internal state.
+
+### 3.3. Assumptions and Simplifications
+
+The `ktxinsights` model relies on a set of simplifying assumptions to provide its focused view of transactional health:
+
+*   **Transaction Definition:** We assume that a "business transaction" can be uniquely identified by a single Kafka `transactional.id`. Workflows that span multiple `transactional.id`s are not currently correlated into a single view.
+*   **Structured Event Schema:** The toolkit expects that the application's event stream adheres to a specific, structured schema, including distinct `transaction_open`, `transaction_close`, and `transaction_step` event types. This requires some degree of application instrumentation.
+*   **Known Transaction Steps:** For multi-step transaction analysis, the current implementation assumes that the set of expected steps for a given transaction type is known in advance. While this is currently hardcoded, a future improvement would be to make this dynamically configurable.
+
+These assumptions allow the toolkit to maintain a simple, effective, and stateful model of business transactions without the full complexity of a general-purpose distributed tracing system.
 
 ## 4. Reflections on Measuring Transactional Health
 
 The dual-consumer architecture does more than just identify aborted transactions; it enables a more sophisticated and holistic understanding of transactional health. By observing the full lifecycle of every transaction, we can move beyond simple success rates and introduce new, more powerful metrics.
 
-### 4.1. Transactional Integrity and Watermarks
+### 4.1. Transactional Integrity and Timestamps
 
 We propose the concept of **"Transactional Integrity"** as a measure of how closely the committed reality of the system matches the intended business logic. A system with high integrity has a minimal number of transactions that are either aborted or "in-flight" for an extended period.
 
-To quantify this, we introduce a new set of **"Transactional Watermark"** metrics:
+To quantify this, we introduce two complementary metrics:
 
-*   **High Watermark of Open Transactions:** The timestamp of the most recently opened business transaction.
-*   **Low Watermark of Closed Transactions:** The timestamp of the "oldest" transaction that is still in an `Open` or `TentativelyClosed` state.
-*   **Transactional Integrity Lag (TIL):** The difference between these two watermarks (`High - Low`). This single metric represents the "time window of uncertainty" in the system. A low, stable TIL indicates a healthy system, while a rapidly growing TIL is a clear sign of a problem, such as a stuck consumer, a producer bug, or broker issues.
+*   **Transactional Integrity Lag (TIL):** The difference between the newest and oldest unresolved transaction timestamps (`Max - Min`). While simple to understand, this metric can be misleading. A single, genuinely stuck transaction from hours ago would keep the minimum timestamp artificially low, resulting in a massive TIL. This would obscure the fact that 99.9% of recent transactions might be processing perfectly.
+
+*   **P95 Unresolved Transaction Age:** A more robust, percentile-based metric that represents the age of the 95th percentile oldest unresolved transaction. This metric is far less volatile and provides a better indicator of systemic health. If the P95 age is low, it means that the vast majority of transactions are resolving quickly. A rising P95 age is a clear and reliable indicator of a widespread processing issue, while being immune to the effects of a single outlier.
 
 ### 4.2. End-to-End Transaction Lifetime Distribution
 
@@ -102,15 +119,40 @@ A key challenge in performance analysis is distinguishing between application-le
 4.  **Measure:** The `ktx-aggregate` service monitors the live traffic and exposes its measurements via a Prometheus endpoint.
 5.  **Compare:** A `ktx-compare` tool fetches the live metrics and compares them against the ground-truth benchmark, producing a report that precisely quantifies the overhead of the Kafka infrastructure and highlights any discrepancies (e.g., aborted transactions).
 
-## 6. Comparison with Existing Solutions
+## 6. Comparison with the Observability Ecosystem
 
-The `ktxinsights` toolkit complements, rather than replaces, existing Kafka monitoring tools. Here's how it compares:
+The `ktxinsights` toolkit is not designed to replace existing monitoring tools but to fill a specific gap in the observability of business workflows that rely on Kafka transactions. A fair comparison requires positioning it against two distinct categories of tools: Kafka-specific infrastructure monitors and general-purpose application tracing frameworks.
 
-*   **kminion / kafka-lag-exporter:** These tools are excellent for monitoring the health of the "pipes"—consumer lag, topic throughput, and broker health. However, they are fundamentally **business-agnostic**. They can tell you *that* a consumer is lagging, but not *which specific business transaction* is affected. Our approach integrates these infrastructure signals but adds the crucial layer of business context.
+---
 
-*   **Lenses.io:** Lenses provides a powerful UI for exploring Kafka, including some visibility into the transaction coordinator. While it can show you that a producer has an open transaction, it cannot link this to a specific, multi-step business workflow. It remains an infrastructure-centric view. Our solution, by consuming the application's own event stream, provides a much deeper, business-aware analysis.
+### 6.1. Complementing Infrastructure-Level Monitors
 
-The key differentiator of our approach is its **business-first perspective**. By starting with the application's view of a transaction and correlating it with the infrastructure's state, we provide insights that are more actionable and relevant for developers and business analysts.
+Tools like **`kminion` and `kafka-lag-exporter`** are essential for monitoring the fundamental health of a Kafka cluster. They excel at answering infrastructure-centric questions:
+* Is a consumer group falling behind?
+* What is the end-to-end throughput of a topic?
+* Are the brokers healthy?
+
+However, their perspective is fundamentally business-agnostic. They can report that a consumer's offset matches the Last Stable Offset (LSO) and therefore has zero lag, giving the impression of a healthy system. Yet, as demonstrated in the silent failure example, this can mask a critical application-level problem where transactions are being aborted by the broker.
+
+`ktxinsights` acts as a **complementary layer** to these tools. While an infrastructure monitor might alert on high consumer lag, `ktxinsights` can pinpoint the direct business impact by identifying exactly which transactions are "in-flight" or have been stuck for an extended period. It translates an infrastructure signal ("lag is growing") into a business insight ("Order finalization transactions are not being committed").
+
+---
+
+### 6.2. A State-Oriented Alternative to Distributed Tracing
+
+The most relevant paradigm for monitoring workflows across services is **distributed tracing**, with **OpenTelemetry** being the industry standard. In a tracing model, a business workflow is captured as a "trace," and each operation (e.g., an API call, a database query, producing a Kafka message) is a "span" within that trace. This approach provides a powerful, flow-centric view of how a request propagates through a system.
+
+An application could leverage distributed tracing to monitor Kafka transactions by creating a parent span for the business workflow and adding the Kafka `transactional.id` as a tag or attribute. This is a valid and robust alternative for observing system behavior.
+
+However, `ktxinsights` offers a different and more specialized perspective:
+
+* **State-Centric vs. Flow-Centric View:** Distributed tracing is fundamentally **flow-centric**; it shows the path and timing of operations. `ktxinsights`, by contrast, is **state-centric**. Its primary purpose is to build and maintain a formal state machine for each business transaction, tracking its lifecycle from `open` to `tentatively_closed` to a terminal `closed` or `aborted` state. This provides a direct, aggregate view of the business reality (e.g., "How many orders are currently awaiting final confirmation?") that is not the primary focus of tracing systems.
+
+* **Deep Kafka Integration:** The toolkit's insights are derived from its deep integration with Kafka's transactional mechanics. The **dual-consumer architecture** leverages the semantic difference between `read_uncommitted` and `read_committed` isolation levels to definitively track a transaction's journey from "in-flight" to "committed." This Kafka-native approach provides a precise ground truth that can be more difficult to assemble from the general-purpose instrumentation of a tracing system.
+
+* **Purpose-Built Metrics:** Concepts like **"Transactional Integrity"** and the resulting **"Transactional Integrity Lag (TIL)"** metric are direct outputs of the `ktxinsights` stateful model. While one could potentially build similar metrics from tracing data, they are a native, first-class concept within this toolkit, designed specifically to quantify the "time window of uncertainty" in a transactional workflow.
+
+In summary, `ktxinsights` does not compete with distributed tracing but rather offers an opinionated, state-oriented alternative for teams whose primary concern is the lifecycle and integrity of business transactions as they are materialized within Kafka's transactional protocol.
 
 ## 7. Conclusion
 
@@ -167,6 +209,18 @@ This scenario simulates a system that performs well on average but suffers from 
 ### Scenario 00: Minimal with Errors
 
 This scenario is a variation of the minimal scenario that introduces a configurable rate of transaction failures. This is useful for verifying that the toolkit can correctly identify and report on aborted transactions, and for validating the accuracy of the "Transactional Integrity Ratio" metric.
+
+### Scenario 05: LSO Stall
+
+This scenario simulates a producer that successfully writes several messages in a transaction but never commits it. It is used to validate that the `validator` consumer correctly stops consuming at the Last Stable Offset (LSO) and that the `ktxinsights_validator_lso_lag` metric accurately reports the growing lag against the LSO.
+
+### Scenario 06: Cross-Partition and Late Events
+
+This scenario models a complex transaction where events are written to multiple topics (or partitions) and one event arrives significantly later than the others, even after the `transaction_close` event has been seen by the monitor. It is used to validate the resilience of the state machine, specifically its ability to wait for all expected steps and to revert from a `tentatively_closed` state back to `open` to correctly process the late-arriving event.
+
+### Scenario 07: Aborted Transaction via Coordinator
+
+This scenario simulates a transaction that is aborted by the broker. It uses a synthetic "coordinator update" event in the test file to mimic the `CoordinatorCollector` reporting that the transaction is no longer active. This is used to validate the `verified_aborted` state transition and confirm that the system correctly identifies transactions that are aborted at the infrastructure level.
 
 ## Appendix B: Relation to Kafka Improvement Proposals (KIPs)
 
@@ -229,7 +283,9 @@ The `ktx-simulate` tool generates a stream of events that mimic a real-world tra
 ```mermaid
 stateDiagram-v2
     [*] --> open: transaction_open
-    open --> tentatively_closed: transaction_close (monitor)
+    open --> open: transaction_step
+    open --> tentatively_closed: transaction_close (monitor) AND all_steps_observed
+    tentatively_closed --> open: transaction_step (late arrival)
     tentatively_closed --> closed: transaction_close (validator)
     open --> aborted: timeout
     tentatively_closed --> aborted: timeout
@@ -242,13 +298,15 @@ stateDiagram-v2
 
 **How the Transaction State Machine Works:**
 
-The `ktx-aggregate` service builds a state machine for each transaction to track its lifecycle.
+The `ktx-aggregate` service builds a state machine for each transaction to track its lifecycle, designed to be resilient to out-of-order and late-arriving events.
 
-1.  A transaction enters the `open` state when a `transaction_open` event is received.
-2.  When the `monitor` consumer sees a `transaction_close` event, the state transitions to `tentatively_closed`.
-3.  When the `validator` consumer sees the same `transaction_close` event, the state transitions to `closed`, and the transaction is considered successful.
-4.  If a transaction remains in the `open` or `tentatively_closed` state for too long, it is moved to the `aborted` state.
-5.  If the `CoordinatorCollector` reports that a transaction is no longer active on the broker, but it has not been confirmed as `closed`, it is moved to the `verified_aborted` state.
+1.  A transaction enters the `open` state when a `transaction_open` event is received. The aggregator tracks a set of expected steps for the transaction.
+2.  As `transaction_step` events arrive, they are recorded.
+3.  When the `monitor` consumer sees a `transaction_close` event AND all expected steps have been observed, the state transitions to `tentatively_closed`.
+4.  If a `transaction_step` event arrives for a transaction that is already `tentatively_closed` (a late event), the state reverts back to `open` to await the final `transaction_close` event again.
+5.  When the `validator` consumer sees the `transaction_close` event for a `tentatively_closed` transaction, the state transitions to `closed`, and the transaction is considered successful.
+6.  If a transaction remains in an unresolved state for too long, it is moved to `aborted`.
+7.  If the `CoordinatorCollector` reports that a transaction is no longer active on the broker, it is moved to `verified_aborted`.
 
 ### Consumers and Topics
 
@@ -370,3 +428,19 @@ graph TD
 
 *   **Local Mode:** The `ktx-aggregate` service reads events directly from a file. This is useful for testing the core logic of the aggregator and for generating reports without the need for a running Kafka cluster.
 *   **Kafka Mode:** The `ktx-replay` service reads events from a file and produces them to a Kafka cluster. The `ktx-aggregate` service then consumes these events from Kafka. This mode provides a more realistic test of the entire system, including the performance overhead of the Kafka cluster itself.
+
+## Appendix D: Architectural Considerations and Limitations
+
+While the paper positions `ktxinsights` as a "lightweight toolkit," it is important to acknowledge the architectural trade-offs and operational complexity inherent in its stateful, centralized design.
+
+### Stateful Aggregator as a Bottleneck
+
+The `TransactionAggregator` is a stateful component that must process every relevant event to maintain its in-memory state machine for all in-flight transactions. This design presents a potential performance bottleneck and a single point of failure. The current implementation does not address high availability or horizontal scalability. For a production system handling millions of concurrent transactions, this component would need to be re-architected, for example, by sharding the processing based on `transactional.id` and using a distributed, persistent state store (e.g., Kafka Streams, Flink, or a key-value database) instead of in-memory dictionaries.
+
+### Memory Footprint
+
+In a system with many long-running transactions, the memory required to hold the state for all "Open" or "TentativelyClosed" transactions could become substantial. The current design offers no mechanism for managing this memory footprint and does not persist its state, meaning a restart of the aggregator will lose all visibility into in-flight transactions until they emit new events. A production-ready version would require state persistence and a strategy for managing the lifecycle of old, unresolved transaction states.
+
+### Polling the Coordinator
+
+The `CoordinatorCollector` relies on polling the Admin API. While the implementation includes backoff, jitter, and filtering to minimize impact, polling is inherently less efficient than a push-based or event-driven mechanism. On a large, multi-tenant Kafka cluster with thousands of unique `transactional.id`s, this could still introduce non-trivial load on the brokers and result in stale data between polling intervals. A more advanced solution might involve leveraging broker-level metrics or logs if they were to become available in future Kafka versions.

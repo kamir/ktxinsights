@@ -1,0 +1,3 @@
+{"type": "transaction_open", "txn_id": "tx-abort", "producer_epoch": 0, "ts_ms": 1672531200000}
+{"type": "transaction_step", "txn_id": "tx-abort", "step_name": "stepA", "ts_ms": 1672531201000}
+{"type": "coordinator_update", "open_transaction_ids": [], "ts_ms": 1672531202000}

@@ -1,0 +1,8 @@
+{"type": "transaction_open", "txn_id": "tx-1", "producer_epoch": 0, "ts_ms": 1672531200000}
+{"type": "transaction_step", "txn_id": "tx-1", "step_name": "stepA", "ts_ms": 1672531201000}
+{"type": "broker_lso_update", "topic": "workflow.transactions", "partition": 0, "lso": 1, "ts_ms": 1672531201500}
+{"type": "transaction_step", "txn_id": "tx-1", "step_name": "stepB", "ts_ms": 1672531202000}
+{"type": "broker_lso_update", "topic": "workflow.transactions", "partition": 0, "lso": 2, "ts_ms": 1672531202500}
+{"type": "transaction_step", "txn_id": "tx-1", "step_name": "stepC", "ts_ms": 1672531203000}
+{"type": "transaction_close", "txn_id": "tx-1", "ts_ms": 1672531204000}
+{"type": "broker_lso_update", "topic": "workflow.transactions", "partition": 0, "lso": 4, "ts_ms": 1672531204500}

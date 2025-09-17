@@ -6,21 +6,25 @@
 set -e
 
 # --- 1. Setup ---
-SCENARIO_SCRIPT="scenarios/01_high_throughput.sh"
-SCENARIO_NAME=$(basename "$SCENARIO_SCRIPT" .sh)
-EVENTS_FILE="scenarios/$SCENARIO_NAME/events.jsonl"
-GROUND_TRUTH_FILE="scenarios/$SCENARIO_NAME/report/report_stats.json"
+if [ -z "$1" ]; then
+    echo "Usage: $0 <path_to_events.jsonl>"
+    exit 1
+fi
+
+EVENTS_FILE=$1
+SCENARIO_DIR=$(dirname "$EVENTS_FILE")
+GROUND_TRUTH_FILE="$SCENARIO_DIR/report/report_stats.json"
 
 echo "--- Local Analysis Setup ---"
-echo "Scenario to analyze: $SCENARIO_NAME"
+echo "Event file to analyze: $EVENTS_FILE"
 echo "----------------------------"
 
 # Activate virtual environment
 source venv/bin/activate
 
-# --- 2. Generate Scenario Data ---
-echo -e "\n[Step 1/4] Generating scenario data..."
-bash "$SCENARIO_SCRIPT"
+# --- 2. Generate Ground Truth ---
+echo -e "\n[Step 1/4] Generating ground truth report..."
+ktx-report --file "$EVENTS_FILE" --out-dir "$SCENARIO_DIR/report"
 
 # --- 3. Start Monitoring Services in the Background ---
 echo -e "\n[Step 2/4] Starting monitoring services in file-reading mode..."

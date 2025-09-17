@@ -1,4 +1,3 @@
-
 <img width="100%" alt="image" src="https://github.com/user-attachments/assets/093e0174-7c1d-4e05-a714-bbfde1bf7445" />
 
 # Transaction Insights (`ktxinsights`)
@@ -57,3 +56,23 @@ Example:
 ```
 
 This will start all the necessary services, replay the chosen scenario to your Kafka cluster, and generate a comparison report.
+
+## Security and ACLs
+
+The `ktxinsights` toolkit requires specific permissions to operate correctly against a secure Kafka cluster.
+
+### Coordinator Collector (`collector.py`)
+
+The collector service uses the Admin API to describe transactional state. It requires the following ACLs:
+
+*   **CLUSTER:DESCRIBE**: To list and describe transactions.
+*   **TOPIC:PRODUCE**: On the `ktxinsights.coordinator.state` topic (or as configured) to publish its findings.
+
+The collector can be run in a `--read-only` mode, which is the default. In this mode, it will not attempt to perform any administrative actions that could alter state (e.g., aborting a transaction, although this feature is not yet implemented).
+
+### Aggregator (`aggregator.py`)
+
+The aggregator service acts as a standard Kafka consumer. It requires the following ACLs:
+
+*   **GROUP:READ**: On the consumer groups (`ktxinsights-monitor-group`, `ktxinsights-validator-group`, `ktxinsights-coordinator-group`).
+*   **TOPIC:READ**: On the input topics (`workflow.transactions`, `workflow.steps`, `ktxinsights.coordinator.state`).

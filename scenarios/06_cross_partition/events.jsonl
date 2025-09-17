@@ -1,0 +1,5 @@
+{"type": "transaction_open", "txn_id": "tx-cross", "producer_epoch": 0, "ts_ms": 1672531200000, "expected_steps": ["stepA", "stepB", "stepC"]}
+{"type": "transaction_step", "txn_id": "tx-cross", "step_name": "stepA", "ts_ms": 1672531201000}
+{"type": "transaction_step", "txn_id": "tx-cross", "step_name": "stepC", "ts_ms": 1672531202000}
+{"type": "transaction_close", "txn_id": "tx-cross", "ts_ms": 1672531203000}
+{"type": "transaction_step", "txn_id": "tx-cross", "step_name": "stepB", "ts_ms": 1672531204000}
