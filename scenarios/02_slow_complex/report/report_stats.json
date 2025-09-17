@@ -1,25 +1,25 @@
 {
     "transaction_durations": {
         "unit": "seconds",
-        "count": 100,
-        "avg": 35.72972,
-        "median": 34.8755,
-        "p90": 40.194,
-        "p95": 48.385,
-        "p99": 52.036
+        "count": 322,
+        "avg": 35.61377639751553,
+        "median": 34.727000000000004,
+        "p90": 39.906,
+        "p95": 48.824,
+        "p99": 54.221
     },
     "inter_step_gaps": {
         "unit": "seconds",
-        "count": 900,
-        "avg": 1.147261111111111,
-        "median": 0.9924999999999999,
-        "p90": 1.409,
-        "p95": 1.458,
-        "p99": 1.499
+        "count": 2898,
+        "avg": 1.152527950310559,
+        "median": 1.0025,
+        "p90": 1.416,
+        "p95": 1.465,
+        "p99": 15.506
     },
     "outliers": {
         "threshold_ms": 15000,
-        "detected_count": 9,
-        "injected_count": 9
+        "detected_count": 30,
+        "injected_count": 30
     }
 }

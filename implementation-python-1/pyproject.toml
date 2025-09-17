@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "txinsights"
+name = "ktxinsights"
 version = "0.1.0"
 authors = [
   { name="Mirko Kaempf", email="info@mirkokaempf.com" },
@@ -20,14 +20,16 @@ dependencies = [
     "confluent-kafka",
     "prometheus-client",
     "matplotlib",
+    "requests",
 ]
 
 [project.scripts]
-tx-simulate = "txinsights.cli.simulate:main"
-tx-replay = "txinsights.cli.replay:main"
-tx-aggregate = "txinsights.cli.aggregate:main"
-tx-report = "txinsights.cli.report:main"
-tx-collect = "txinsights.cli.collect:main"
+ktx-simulate = "ktxinsights.cli.simulate:main"
+ktx-replay = "ktxinsights.cli.replay:main"
+ktx-aggregate = "ktxinsights.cli.aggregate:main"
+ktx-report = "ktxinsights.cli.report:main"
+ktx-collect = "ktxinsights.cli.collect:main"
+ktx-compare = "ktxinsights.cli.compare:main"
 
 [project.urls]
 "Homepage" = "https://github.com/kamir/cflt-ps-ppi-tx-monitoring"

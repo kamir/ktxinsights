@@ -26,6 +26,7 @@ def create_kafka_producer(config: dict):
     default_conf = {
         "socket.keepalive.enable": True,
         "acks": "all",
+        "transaction.timeout.ms": 60000,
     }
     default_conf.update(config)
     return Producer(default_conf)
@@ -89,5 +90,12 @@ def replay_events(producer: Producer, events: List[dict], speed_factor: float, t
         producer.poll(0) # Non-blocking poll to trigger delivery callbacks
 
     print("All events have been produced. Flushing producer...")
-    producer.flush()
+    # The flush() method can take a timeout to ensure all messages are sent.
+    # We'll give it a generous 30 seconds to accommodate for network latency.
+    remaining = producer.flush(30)
+    if remaining > 0:
+        print(f"Warning: {remaining} messages failed to flush.")
+    else:
+        print("All messages flushed successfully.")
+    
     print(f"Replay complete. {events_sent} events successfully sent.")

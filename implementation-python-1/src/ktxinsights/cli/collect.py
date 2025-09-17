@@ -1,11 +1,11 @@
 import argparse
-from txinsights.collector import collection_loop
+from ktxinsights.collector import collection_loop
 
 def main():
     parser = argparse.ArgumentParser(description="Kafka Transaction Coordinator State Collector.")
     parser.add_argument("--kafka-bootstrap", type=str, help="Kafka bootstrap servers")
     parser.add_argument("--config-file", type=str, help="Path to Confluent Cloud configuration file.")
-    parser.add_argument("--topic", type=str, default="txinsights.coordinator.state", help="Topic to publish coordinator state to")
+    parser.add_argument("--topic", type=str, default="ktxinsights.coordinator.state", help="Topic to publish coordinator state to")
     parser.add_argument("--interval-s", type=int, default=15, help="Polling interval in seconds")
     args = parser.parse_args()
 

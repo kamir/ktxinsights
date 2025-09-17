@@ -27,6 +27,7 @@ class SimConfig:
     inter_step_delay_ms: Tuple[int, int] = (200, 1200)   # between steps
     outlier_delay_ms: int = 15000                        # 15s
     outlier_prob: float = 0.01                           # 1%
+    failure_prob: float = 0.0                            # 0%
     concurrency: int = 20                                # limit concurrent transactions
     seed: Optional[int] = 42
     timezone: str = "Europe/Berlin"                      # for context/meta only
@@ -112,6 +113,9 @@ class Emitter:
 # Simulation core
 # -------------------------
 async def simulate_transaction(txn_id: str, cfg: SimConfig, emitter: Emitter):
+    # Decide if this transaction should fail
+    will_fail = random.random() < cfg.failure_prob
+    
     start_ms = now_ms()
     meta = {
         "timezone": cfg.timezone,
@@ -172,15 +176,16 @@ async def simulate_transaction(txn_id: str, cfg: SimConfig, emitter: Emitter):
             })
             await asyncio.sleep(inter_ms / 1000.0)
 
-    # Transaction close
-    end_ms = now_ms()
-    emitter.emit_txn({
-        "type": "transaction_close",
-        "txn_id": txn_id,
-        "ts_ms": end_ms,
-        "duration_ms": end_ms - start_ms,
-        "steps": cfg.steps
-    })
+    # Transaction close (unless it's a planned failure)
+    if not will_fail:
+        end_ms = now_ms()
+        emitter.emit_txn({
+            "type": "transaction_close",
+            "txn_id": txn_id,
+            "ts_ms": end_ms,
+            "duration_ms": end_ms - start_ms,
+            "steps": cfg.steps
+        })
 
 
 async def run_sim(cfg: SimConfig, kafka_cfg: KafkaConfig):
@@ -217,6 +222,7 @@ def parse_args():
     p.add_argument("--inter-max", type=int, default=1200, help="Max inter-step delay (ms)")
     p.add_argument("--outlier-ms", type=int, default=15000, help="Outlier extra delay (ms)")
     p.add_argument("--outlier-prob", type=float, default=0.01, help="Probability of outlier (0..1)")
+    p.add_argument("--failure-prob", type=float, default=0.0, help="Probability of transaction failure (0..1)")
     p.add_argument("--concurrency", type=int, default=20, help="Concurrent transactions")
     p.add_argument("--seed", type=int, default=42, help="RNG seed (omit for random)")
     # Kafka optional
@@ -234,6 +240,7 @@ def main():
         inter_step_delay_ms=(args.inter_min, args.inter_max),
         outlier_delay_ms=args.outlier_ms,
         outlier_prob=args.outlier_prob,
+        failure_prob=args.failure_prob,
         concurrency=args.concurrency,
         seed=args.seed,
     )

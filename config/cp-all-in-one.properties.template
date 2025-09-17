@@ -1,0 +1,2 @@
+# Configuration for a local cp-all-in-one Docker-based environment
+bootstrap.servers=localhost:9092

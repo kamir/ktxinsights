@@ -17,7 +17,7 @@ echo "--- Running Scenario 03: Unreliable, Spiky ---"
 # Step 1: Generate the event data
 echo "Generating event data..."
 ./venv/bin/python3 solution-proposal-1/event-flow-simulation.py \
-    --samples 200 \
+    --samples 625 \
     --concurrency 20 \
     --outlier-prob 0.05 \
     --outlier-ms 20000 \

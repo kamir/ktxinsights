@@ -1,0 +1,41 @@
+
+        <html>
+            <head>
+                <title>Scenario Performance Analysis</title>
+                <style>
+                    body { font-family: sans-serif; }
+                    table { border-collapse: collapse; width: 60%; }
+                    th, td { border: 1px solid #dddddd; text-align: left; padding: 8px; }
+                    th { background-color: #f2f2f2; }
+                </style>
+            </head>
+            <body>
+                <h1>Scenario Performance Analysis</h1>
+                <h2>Transaction Counts</h2>
+                <table>
+                    <tr><th>Metric</th><th>Value</th></tr>
+                    <tr><td>Expected Successful</td><td>9</td></tr>
+                    <tr><td>Measured Successful</td><td>8</td></tr>
+                    <tr><td>Measured Aborted</td><td>2</td></tr>
+                    <tr><td>Discrepancy</td><td>1</td></tr>
+                </table>
+
+                <h2>Average Transaction Duration</h2>
+                <table>
+                    <tr><th>Metric</th><th>Value</th></tr>
+                    <tr><td>Benchmark (Ground Truth)</td><td>0.710s</td></tr>
+                    <tr><td>Live Measurement</td><td>2.317s</td></tr>
+                    <tr><td>Kafka Overhead (Delta)</td><td>+1607.3ms</td></tr>
+                </table>
+
+                <h2>Transactional Integrity</h2>
+                <table>
+                    <tr><th>Metric</th><th>Value</th></tr>
+                    <tr><td>Transactional Integrity Ratio</td><td>80.00%</td></tr>
+                    <tr><td>High Watermark (Newest Open)</td><td>N/A</td></tr>
+                    <tr><td>Low Watermark (Oldest Unresolved)</td><td>N/A</td></tr>
+                    <tr><td>Transactional Integrity Lag (TIL)</td><td>0.00s</td></tr>
+                </table>
+            </body>
+        </html>
+        

@@ -1,6 +1,6 @@
 import argparse
 import asyncio
-from txinsights.simulate import SimConfig, KafkaConfig, run_sim
+from ktxinsights.simulate import SimConfig, KafkaConfig, run_sim
 
 def main():
     parser = argparse.ArgumentParser(description="Simulate Kafka-like 5-step workflows with random delays.")

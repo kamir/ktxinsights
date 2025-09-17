@@ -25,35 +25,29 @@ except Exception:
 # Prometheus Metrics Definition
 # ---------------------------
 EVENT_COUNT = Counter(
-    "txinsights_events_total",
+    "ktxinsights_events_total",
     "Total events ingested by type",
     labelnames=("type",),
 )
 
-TXN_DURATION = Histogram(
-    "txinsights_transaction_duration_seconds",
-    "Transaction duration from open to close (seconds)",
-    buckets=(0.5, 1, 2, 3, 5, 8, 13, 21, 34, 55),
-)
-
 INTER_STEP_GAP = Histogram(
-    "txinsights_inter_step_gap_seconds",
+    "ktxinsights_inter_step_gap_seconds",
     "Inter-step wait (seconds)",
     buckets=(0.1, 0.5, 1, 2, 5, 10, 15, 20, 30),
 )
 
 OUTLIERS = Counter(
-    "txinsights_inter_step_outliers_total",
+    "ktxinsights_inter_step_outliers_total",
     "Count of inter-step gaps above threshold",
 )
 
 INJECTED_OUTLIERS = Counter(
-    "txinsights_injected_outliers_total",
+    "ktxinsights_injected_outliers_total",
     "Count of gaps marked as outlier_injected by producer",
 )
 
 TXN_STATE_GAUGE = Gauge(
-    "txinsights_transactions_by_state",
+    "ktxinsights_transactions_by_state",
     "Number of transactions currently in a given state",
     labelnames=("state",),
 )
@@ -63,6 +57,28 @@ TXN_STATE_GAUGE.labels("open").set(0)
 TXN_STATE_GAUGE.labels("tentatively_closed").set(0)
 TXN_STATE_GAUGE.labels("closed").set(0)
 TXN_STATE_GAUGE.labels("aborted").set(0)
+TXN_STATE_GAUGE.labels("verified_aborted").set(0)
+
+TXN_LIFETIME = Histogram(
+    "ktxinsights_transaction_lifetime_seconds",
+    "End-to-end lifetime of a transaction from open to terminal state (closed or aborted)",
+    buckets=(0.5, 1, 2, 3, 5, 8, 13, 21, 34, 55),
+)
+
+TIL_GAUGE = Gauge(
+    "ktxinsights_transactional_integrity_lag_seconds",
+    "Time delta between the newest open and oldest unresolved transaction",
+)
+
+HIGH_WATERMARK_OPEN_TXN_GAUGE = Gauge(
+    "ktxinsights_high_watermark_open_transactions_timestamp_seconds",
+    "Timestamp of the most recently opened transaction that is not yet resolved",
+)
+
+LOW_WATERMARK_UNRESOLVED_TXN_GAUGE = Gauge(
+    "ktxinsights_low_watermark_unresolved_transactions_timestamp_seconds",
+    "Timestamp of the oldest transaction that is not yet resolved",
+)
 
 
 # ---------------------------
@@ -72,7 +88,7 @@ class TransactionState:
     """Models the state of a single business transaction."""
     def __init__(self, txn_id: str, open_ts: int):
         self.txn_id = txn_id
-        self.state = "open"  # open, tentatively_closed, closed, aborted
+        self.state = "open"  # open, tentatively_closed, closed, aborted, verified_aborted
         self.open_ts = open_ts
         self.tentative_close_ts: Optional[int] = None
         self.close_ts: Optional[int] = None
@@ -80,6 +96,7 @@ class TransactionState:
 
     def tentatively_close(self, ts: int):
         if self.state == "open":
+            print(f"[{self.txn_id}] State change: open -> tentatively_closed")
             self.state = "tentatively_closed"
             self.tentative_close_ts = ts
             self.last_update_ts = ts
@@ -88,24 +105,37 @@ class TransactionState:
 
     def confirm_close(self, ts: int):
         if self.state == "tentatively_closed":
+            print(f"[{self.txn_id}] State change: tentatively_closed -> closed")
             self.state = "closed"
             self.close_ts = ts
             self.last_update_ts = ts
             TXN_STATE_GAUGE.labels("tentatively_closed").dec()
             TXN_STATE_GAUGE.labels("closed").inc()
-            TXN_DURATION.observe((self.close_ts - self.open_ts) / 1000.0)
+            TXN_LIFETIME.observe((self.close_ts - self.open_ts) / 1000.0)
 
     def abort(self, ts: int):
         if self.state in ("open", "tentatively_closed"):
+            print(f"[{self.txn_id}] State change: {self.state} -> aborted")
             previous_state = self.state
             self.state = "aborted"
             self.last_update_ts = ts
             TXN_STATE_GAUGE.labels(previous_state).dec()
             TXN_STATE_GAUGE.labels("aborted").inc()
+            TXN_LIFETIME.observe((self.last_update_ts - self.open_ts) / 1000.0)
+
+    def verify_abort(self, ts: int):
+        if self.state in ("open", "tentatively_closed"):
+            print(f"[{self.txn_id}] State change via Coordinator: {self.state} -> verified_aborted")
+            previous_state = self.state
+            self.state = "verified_aborted"
+            self.last_update_ts = ts
+            TXN_STATE_GAUGE.labels(previous_state).dec()
+            TXN_STATE_GAUGE.labels("verified_aborted").inc()
+            TXN_LIFETIME.observe((self.last_update_ts - self.open_ts) / 1000.0)
 
 
 class Aggregator:
-    def __init__(self, outlier_ms: int = 15000, abort_timeout_s: int = 60):
+    def __init__(self, outlier_ms: int = 15000, abort_timeout_s: int = 300):
         self.transactions: Dict[str, TransactionState] = {}
         self.outlier_threshold_ms = outlier_ms
         self.abort_timeout_s = abort_timeout_s
@@ -121,6 +151,18 @@ class Aggregator:
         EVENT_COUNT.labels(et).inc()
 
         with self._lock:
+            if consumer_type == "coordinator":
+                # Events from the coordinator collector are handled differently
+                # They provide a ground truth about what is *not* on the broker
+                open_txn_ids = set(ev.get("open_transaction_ids", []))
+                now = int(time.time() * 1000)
+                
+                # Find transactions that are no longer open according to the coordinator
+                for txn_id, txn in self.transactions.items():
+                    if txn.state in ("open", "tentatively_closed") and txn_id not in open_txn_ids:
+                        txn.verify_abort(now)
+                return
+
             if et == "transaction_open":
                 if txn_id not in self.transactions:
                     self.transactions[txn_id] = TransactionState(txn_id, int(ev["ts_ms"]))
@@ -145,20 +187,48 @@ class Aggregator:
                         OUTLIERS.inc()
 
     def check_for_aborted_transactions(self):
-        """Periodically check for transactions that are tentatively closed but never validated."""
+        """Periodically check for timeouts and update watermarks."""
         while True:
-            time.sleep(self.abort_timeout_s / 2)
+            time.sleep(self.abort_timeout_s / 4)
             now = int(time.time() * 1000)
+            
             with self._lock:
-                aborted_ids = []
-                for txn_id, txn in self.transactions.items():
+                # Check for aborts
+                for txn in list(self.transactions.values()):  # Iterate over a copy
+                    # Case 1: A transaction was tentatively closed but never validated.
                     if txn.state == "tentatively_closed":
-                        if (now - txn.tentative_close_ts) / 1000.0 > self.abort_timeout_s:
+                        if txn.tentative_close_ts and (now - txn.tentative_close_ts) / 1000.0 > self.abort_timeout_s:
                             txn.abort(now)
-                            aborted_ids.append(txn_id)
+                    # Case 2: A transaction was opened but never even tentatively closed.
+                    elif txn.state == "open":
+                        if (now - txn.open_ts) / 1000.0 > self.abort_timeout_s:
+                            print(f"[{txn.txn_id}] State change: open -> aborted (timeout)")
+                            txn.abort(now)
                 
+                # Update watermarks
+                open_transactions = [
+                    t for t in self.transactions.values() 
+                    if t.state in ("open", "tentatively_closed")
+                ]
+                
+                if open_transactions:
+                    high_watermark = max(t.open_ts for t in open_transactions)
+                    low_watermark = min(t.open_ts for t in open_transactions)
+                    high_watermark_ts_sec = high_watermark / 1000.0
+                    low_watermark_ts_sec = low_watermark / 1000.0
+                    til_seconds = high_watermark_ts_sec - low_watermark_ts_sec
+                    
+                    TIL_GAUGE.set(til_seconds)
+                    HIGH_WATERMARK_OPEN_TXN_GAUGE.set(high_watermark_ts_sec)
+                    LOW_WATERMARK_UNRESOLVED_TXN_GAUGE.set(low_watermark_ts_sec)
+                else:
+                    TIL_GAUGE.set(0)
+                    # If there are no open transactions, the watermarks are undefined,
+                    # but setting them to 0 is a reasonable default for Prometheus.
+                    HIGH_WATERMARK_OPEN_TXN_GAUGE.set(0)
+                    LOW_WATERMARK_UNRESOLVED_TXN_GAUGE.set(0)
+
                 # Clean up very old completed/aborted transactions
-                # In a real system, this would go to a persistent store
                 old_ids = [
                     tid for tid, t in self.transactions.items()
                     if t.state in ("closed", "aborted") and (now - t.last_update_ts) / 1000.0 > 300

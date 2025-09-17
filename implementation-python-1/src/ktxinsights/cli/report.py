@@ -1,5 +1,5 @@
 import argparse
-from txinsights.report import generate_report
+from ktxinsights.report import generate_report
 
 def main():
     parser = argparse.ArgumentParser(description="Create latency charts from workflow events (JSONL).")

@@ -1,5 +1,5 @@
 import argparse
-from txinsights.replay import create_kafka_producer, read_jsonl, replay_events
+from ktxinsights.replay import create_kafka_producer, read_jsonl, replay_events
 
 def main():
     parser = argparse.ArgumentParser(description="Replay a Kafka event scenario from a JSONL file.")

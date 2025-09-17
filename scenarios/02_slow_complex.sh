@@ -18,7 +18,7 @@ echo "--- Running Scenario 02: Slow, Complex ---"
 # Step 1: Generate the event data
 echo "Generating event data..."
 ./venv/bin/python3 solution-proposal-1/event-flow-simulation.py \
-    --samples 100 \
+    --samples 322 \
     --concurrency 10 \
     --steps 10 \
     --pre-min 1000 \

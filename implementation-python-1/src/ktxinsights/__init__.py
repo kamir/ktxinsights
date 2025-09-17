@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-txinsights: A Python package for Kafka transaction visibility.
+ktxinsights: A Python package for Kafka transaction visibility.
 """
 
 __author__ = """Mirko Kaempf"""

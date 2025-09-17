@@ -1,11 +1,11 @@
-# Transaction Insights (`txinsights`)
+# Transaction Insights (`ktxinsights`)
 
 This project is a Python package for gaining visibility into Kafka-based business transactions. It provides tools to simulate, replay, and monitor event streams to understand the performance and reliability of your workflows.
 
 ## Project Structure
 
 -   `pyproject.toml`: Defines the package metadata, dependencies, and entry points.
--   `src/txinsights/`: The main package directory containing the core logic.
+-   `src/ktxinsights/`: The main package directory containing the core logic.
     -   `simulate.py`: Logic for generating event data.
     -   `replay.py`: Logic for replaying event data to Kafka.
     -   `aggregator.py`: Logic for consuming and aggregating event data.
@@ -78,5 +78,5 @@ tx-collect --kafka-bootstrap localhost:9092
 
 1.  Activate your virtual environment: `source venv/bin/activate`
 2.  Install the package: `pip install -e .`
-3.  Use the `tx-*` commands to run the tools.
-4.  Modify the source code in `src/txinsights/` as needed.
+3.  Use the `ktx-*` commands to run the tools.
+4.  Modify the source code in `src/ktxinsights/` as needed.
