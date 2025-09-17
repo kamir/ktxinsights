@@ -2,11 +2,11 @@
     "transaction_durations": {
         "unit": "seconds",
         "count": 5,
-        "avg": 0.711,
+        "avg": 0.7111999999999999,
         "median": 0.711,
         "p90": 0.711,
-        "p95": 0.713,
-        "p99": 0.713
+        "p95": 0.714,
+        "p99": 0.714
     },
     "inter_step_gaps": {
         "unit": "seconds",

@@ -1,80 +1,80 @@
-{"type": "transaction_open", "txn_id": "txn_xaji0y6dpbhs", "ts_ms": 1758099821433, "meta": {"timezone": "Europe/Berlin", "sim_version": "1.0.0"}}
-{"type": "step_open", "txn_id": "txn_xaji0y6dpbhs", "step": 1, "ts_ms": 1758099821534, "pre_delay_ms": 100}
-{"type": "step_done", "txn_id": "txn_xaji0y6dpbhs", "step": 1, "ts_ms": 1758099821534}
-{"type": "inter_step_wait", "txn_id": "txn_xaji0y6dpbhs", "from_step": 1, "to_step": 2, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758099821534}
-{"type": "step_open", "txn_id": "txn_xaji0y6dpbhs", "step": 2, "ts_ms": 1758099821687, "pre_delay_ms": 100}
-{"type": "step_done", "txn_id": "txn_xaji0y6dpbhs", "step": 2, "ts_ms": 1758099821687}
-{"type": "inter_step_wait", "txn_id": "txn_xaji0y6dpbhs", "from_step": 2, "to_step": 3, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758099821687}
-{"type": "step_open", "txn_id": "txn_xaji0y6dpbhs", "step": 3, "ts_ms": 1758099821839, "pre_delay_ms": 100}
-{"type": "step_done", "txn_id": "txn_xaji0y6dpbhs", "step": 3, "ts_ms": 1758099821839}
-{"type": "inter_step_wait", "txn_id": "txn_xaji0y6dpbhs", "from_step": 3, "to_step": 4, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758099821839}
-{"type": "step_open", "txn_id": "txn_xaji0y6dpbhs", "step": 4, "ts_ms": 1758099821991, "pre_delay_ms": 100}
-{"type": "step_done", "txn_id": "txn_xaji0y6dpbhs", "step": 4, "ts_ms": 1758099821992}
-{"type": "inter_step_wait", "txn_id": "txn_xaji0y6dpbhs", "from_step": 4, "to_step": 5, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758099821992}
-{"type": "step_open", "txn_id": "txn_xaji0y6dpbhs", "step": 5, "ts_ms": 1758099822144, "pre_delay_ms": 100}
-{"type": "step_done", "txn_id": "txn_xaji0y6dpbhs", "step": 5, "ts_ms": 1758099822144}
-{"type": "transaction_close", "txn_id": "txn_xaji0y6dpbhs", "ts_ms": 1758099822144, "duration_ms": 711, "steps": 5}
-{"type": "transaction_open", "txn_id": "txn_ahxthv3a3zmf", "ts_ms": 1758099822144, "meta": {"timezone": "Europe/Berlin", "sim_version": "1.0.0"}}
-{"type": "step_open", "txn_id": "txn_ahxthv3a3zmf", "step": 1, "ts_ms": 1758099822245, "pre_delay_ms": 100}
-{"type": "step_done", "txn_id": "txn_ahxthv3a3zmf", "step": 1, "ts_ms": 1758099822245}
-{"type": "inter_step_wait", "txn_id": "txn_ahxthv3a3zmf", "from_step": 1, "to_step": 2, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758099822245}
-{"type": "step_open", "txn_id": "txn_ahxthv3a3zmf", "step": 2, "ts_ms": 1758099822398, "pre_delay_ms": 100}
-{"type": "step_done", "txn_id": "txn_ahxthv3a3zmf", "step": 2, "ts_ms": 1758099822398}
-{"type": "inter_step_wait", "txn_id": "txn_ahxthv3a3zmf", "from_step": 2, "to_step": 3, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758099822398}
-{"type": "step_open", "txn_id": "txn_ahxthv3a3zmf", "step": 3, "ts_ms": 1758099822550, "pre_delay_ms": 100}
-{"type": "step_done", "txn_id": "txn_ahxthv3a3zmf", "step": 3, "ts_ms": 1758099822550}
-{"type": "inter_step_wait", "txn_id": "txn_ahxthv3a3zmf", "from_step": 3, "to_step": 4, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758099822550}
-{"type": "step_open", "txn_id": "txn_ahxthv3a3zmf", "step": 4, "ts_ms": 1758099822701, "pre_delay_ms": 100}
-{"type": "step_done", "txn_id": "txn_ahxthv3a3zmf", "step": 4, "ts_ms": 1758099822702}
-{"type": "inter_step_wait", "txn_id": "txn_ahxthv3a3zmf", "from_step": 4, "to_step": 5, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758099822702}
-{"type": "step_open", "txn_id": "txn_ahxthv3a3zmf", "step": 5, "ts_ms": 1758099822854, "pre_delay_ms": 100}
-{"type": "step_done", "txn_id": "txn_ahxthv3a3zmf", "step": 5, "ts_ms": 1758099822854}
-{"type": "transaction_close", "txn_id": "txn_ahxthv3a3zmf", "ts_ms": 1758099822854, "duration_ms": 710, "steps": 5}
-{"type": "transaction_open", "txn_id": "txn_8mdd4v30t9nt", "ts_ms": 1758099822854, "meta": {"timezone": "Europe/Berlin", "sim_version": "1.0.0"}}
-{"type": "step_open", "txn_id": "txn_8mdd4v30t9nt", "step": 1, "ts_ms": 1758099822955, "pre_delay_ms": 100}
-{"type": "step_done", "txn_id": "txn_8mdd4v30t9nt", "step": 1, "ts_ms": 1758099822955}
-{"type": "inter_step_wait", "txn_id": "txn_8mdd4v30t9nt", "from_step": 1, "to_step": 2, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758099822955}
-{"type": "step_open", "txn_id": "txn_8mdd4v30t9nt", "step": 2, "ts_ms": 1758099823107, "pre_delay_ms": 100}
-{"type": "step_done", "txn_id": "txn_8mdd4v30t9nt", "step": 2, "ts_ms": 1758099823109}
-{"type": "inter_step_wait", "txn_id": "txn_8mdd4v30t9nt", "from_step": 2, "to_step": 3, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758099823109}
-{"type": "step_open", "txn_id": "txn_8mdd4v30t9nt", "step": 3, "ts_ms": 1758099823262, "pre_delay_ms": 100}
-{"type": "step_done", "txn_id": "txn_8mdd4v30t9nt", "step": 3, "ts_ms": 1758099823262}
-{"type": "inter_step_wait", "txn_id": "txn_8mdd4v30t9nt", "from_step": 3, "to_step": 4, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758099823262}
-{"type": "step_open", "txn_id": "txn_8mdd4v30t9nt", "step": 4, "ts_ms": 1758099823414, "pre_delay_ms": 100}
-{"type": "step_done", "txn_id": "txn_8mdd4v30t9nt", "step": 4, "ts_ms": 1758099823414}
-{"type": "inter_step_wait", "txn_id": "txn_8mdd4v30t9nt", "from_step": 4, "to_step": 5, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758099823414}
-{"type": "step_open", "txn_id": "txn_8mdd4v30t9nt", "step": 5, "ts_ms": 1758099823567, "pre_delay_ms": 100}
-{"type": "step_done", "txn_id": "txn_8mdd4v30t9nt", "step": 5, "ts_ms": 1758099823567}
-{"type": "transaction_close", "txn_id": "txn_8mdd4v30t9nt", "ts_ms": 1758099823567, "duration_ms": 713, "steps": 5}
-{"type": "transaction_open", "txn_id": "txn_3w5uzbikcidk", "ts_ms": 1758099823567, "meta": {"timezone": "Europe/Berlin", "sim_version": "1.0.0"}}
-{"type": "step_open", "txn_id": "txn_3w5uzbikcidk", "step": 1, "ts_ms": 1758099823668, "pre_delay_ms": 100}
-{"type": "step_done", "txn_id": "txn_3w5uzbikcidk", "step": 1, "ts_ms": 1758099823668}
-{"type": "inter_step_wait", "txn_id": "txn_3w5uzbikcidk", "from_step": 1, "to_step": 2, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758099823668}
-{"type": "step_open", "txn_id": "txn_3w5uzbikcidk", "step": 2, "ts_ms": 1758099823820, "pre_delay_ms": 100}
-{"type": "step_done", "txn_id": "txn_3w5uzbikcidk", "step": 2, "ts_ms": 1758099823820}
-{"type": "inter_step_wait", "txn_id": "txn_3w5uzbikcidk", "from_step": 2, "to_step": 3, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758099823820}
-{"type": "step_open", "txn_id": "txn_3w5uzbikcidk", "step": 3, "ts_ms": 1758099823973, "pre_delay_ms": 100}
-{"type": "step_done", "txn_id": "txn_3w5uzbikcidk", "step": 3, "ts_ms": 1758099823973}
-{"type": "inter_step_wait", "txn_id": "txn_3w5uzbikcidk", "from_step": 3, "to_step": 4, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758099823973}
-{"type": "step_open", "txn_id": "txn_3w5uzbikcidk", "step": 4, "ts_ms": 1758099824124, "pre_delay_ms": 100}
-{"type": "step_done", "txn_id": "txn_3w5uzbikcidk", "step": 4, "ts_ms": 1758099824124}
-{"type": "inter_step_wait", "txn_id": "txn_3w5uzbikcidk", "from_step": 4, "to_step": 5, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758099824124}
-{"type": "step_open", "txn_id": "txn_3w5uzbikcidk", "step": 5, "ts_ms": 1758099824277, "pre_delay_ms": 100}
-{"type": "step_done", "txn_id": "txn_3w5uzbikcidk", "step": 5, "ts_ms": 1758099824277}
-{"type": "transaction_close", "txn_id": "txn_3w5uzbikcidk", "ts_ms": 1758099824277, "duration_ms": 710, "steps": 5}
-{"type": "transaction_open", "txn_id": "txn_wnnhj7xvg0fn", "ts_ms": 1758099824277, "meta": {"timezone": "Europe/Berlin", "sim_version": "1.0.0"}}
-{"type": "step_open", "txn_id": "txn_wnnhj7xvg0fn", "step": 1, "ts_ms": 1758099824378, "pre_delay_ms": 100}
-{"type": "step_done", "txn_id": "txn_wnnhj7xvg0fn", "step": 1, "ts_ms": 1758099824378}
-{"type": "inter_step_wait", "txn_id": "txn_wnnhj7xvg0fn", "from_step": 1, "to_step": 2, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758099824378}
-{"type": "step_open", "txn_id": "txn_wnnhj7xvg0fn", "step": 2, "ts_ms": 1758099824531, "pre_delay_ms": 100}
-{"type": "step_done", "txn_id": "txn_wnnhj7xvg0fn", "step": 2, "ts_ms": 1758099824531}
-{"type": "inter_step_wait", "txn_id": "txn_wnnhj7xvg0fn", "from_step": 2, "to_step": 3, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758099824531}
-{"type": "step_open", "txn_id": "txn_wnnhj7xvg0fn", "step": 3, "ts_ms": 1758099824684, "pre_delay_ms": 100}
-{"type": "step_done", "txn_id": "txn_wnnhj7xvg0fn", "step": 3, "ts_ms": 1758099824684}
-{"type": "inter_step_wait", "txn_id": "txn_wnnhj7xvg0fn", "from_step": 3, "to_step": 4, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758099824684}
-{"type": "step_open", "txn_id": "txn_wnnhj7xvg0fn", "step": 4, "ts_ms": 1758099824836, "pre_delay_ms": 100}
-{"type": "step_done", "txn_id": "txn_wnnhj7xvg0fn", "step": 4, "ts_ms": 1758099824836}
-{"type": "inter_step_wait", "txn_id": "txn_wnnhj7xvg0fn", "from_step": 4, "to_step": 5, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758099824836}
-{"type": "step_open", "txn_id": "txn_wnnhj7xvg0fn", "step": 5, "ts_ms": 1758099824988, "pre_delay_ms": 100}
-{"type": "step_done", "txn_id": "txn_wnnhj7xvg0fn", "step": 5, "ts_ms": 1758099824988}
-{"type": "transaction_close", "txn_id": "txn_wnnhj7xvg0fn", "ts_ms": 1758099824988, "duration_ms": 711, "steps": 5}
+{"type": "transaction_open", "txn_id": "txn_xaji0y6dpbhs", "ts_ms": 1758102739927, "meta": {"timezone": "Europe/Berlin", "sim_version": "1.0.0"}}
+{"type": "step_open", "txn_id": "txn_xaji0y6dpbhs", "step": 1, "ts_ms": 1758102740028, "pre_delay_ms": 100}
+{"type": "step_done", "txn_id": "txn_xaji0y6dpbhs", "step": 1, "ts_ms": 1758102740028}
+{"type": "inter_step_wait", "txn_id": "txn_xaji0y6dpbhs", "from_step": 1, "to_step": 2, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758102740028}
+{"type": "step_open", "txn_id": "txn_xaji0y6dpbhs", "step": 2, "ts_ms": 1758102740180, "pre_delay_ms": 100}
+{"type": "step_done", "txn_id": "txn_xaji0y6dpbhs", "step": 2, "ts_ms": 1758102740181}
+{"type": "inter_step_wait", "txn_id": "txn_xaji0y6dpbhs", "from_step": 2, "to_step": 3, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758102740181}
+{"type": "step_open", "txn_id": "txn_xaji0y6dpbhs", "step": 3, "ts_ms": 1758102740333, "pre_delay_ms": 100}
+{"type": "step_done", "txn_id": "txn_xaji0y6dpbhs", "step": 3, "ts_ms": 1758102740333}
+{"type": "inter_step_wait", "txn_id": "txn_xaji0y6dpbhs", "from_step": 3, "to_step": 4, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758102740333}
+{"type": "step_open", "txn_id": "txn_xaji0y6dpbhs", "step": 4, "ts_ms": 1758102740484, "pre_delay_ms": 100}
+{"type": "step_done", "txn_id": "txn_xaji0y6dpbhs", "step": 4, "ts_ms": 1758102740484}
+{"type": "inter_step_wait", "txn_id": "txn_xaji0y6dpbhs", "from_step": 4, "to_step": 5, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758102740484}
+{"type": "step_open", "txn_id": "txn_xaji0y6dpbhs", "step": 5, "ts_ms": 1758102740636, "pre_delay_ms": 100}
+{"type": "step_done", "txn_id": "txn_xaji0y6dpbhs", "step": 5, "ts_ms": 1758102740636}
+{"type": "transaction_close", "txn_id": "txn_xaji0y6dpbhs", "ts_ms": 1758102740636, "duration_ms": 709, "steps": 5}
+{"type": "transaction_open", "txn_id": "txn_ahxthv3a3zmf", "ts_ms": 1758102740636, "meta": {"timezone": "Europe/Berlin", "sim_version": "1.0.0"}}
+{"type": "step_open", "txn_id": "txn_ahxthv3a3zmf", "step": 1, "ts_ms": 1758102740737, "pre_delay_ms": 100}
+{"type": "step_done", "txn_id": "txn_ahxthv3a3zmf", "step": 1, "ts_ms": 1758102740738}
+{"type": "inter_step_wait", "txn_id": "txn_ahxthv3a3zmf", "from_step": 1, "to_step": 2, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758102740738}
+{"type": "step_open", "txn_id": "txn_ahxthv3a3zmf", "step": 2, "ts_ms": 1758102740890, "pre_delay_ms": 100}
+{"type": "step_done", "txn_id": "txn_ahxthv3a3zmf", "step": 2, "ts_ms": 1758102740890}
+{"type": "inter_step_wait", "txn_id": "txn_ahxthv3a3zmf", "from_step": 2, "to_step": 3, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758102740890}
+{"type": "step_open", "txn_id": "txn_ahxthv3a3zmf", "step": 3, "ts_ms": 1758102741042, "pre_delay_ms": 100}
+{"type": "step_done", "txn_id": "txn_ahxthv3a3zmf", "step": 3, "ts_ms": 1758102741042}
+{"type": "inter_step_wait", "txn_id": "txn_ahxthv3a3zmf", "from_step": 3, "to_step": 4, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758102741042}
+{"type": "step_open", "txn_id": "txn_ahxthv3a3zmf", "step": 4, "ts_ms": 1758102741195, "pre_delay_ms": 100}
+{"type": "step_done", "txn_id": "txn_ahxthv3a3zmf", "step": 4, "ts_ms": 1758102741195}
+{"type": "inter_step_wait", "txn_id": "txn_ahxthv3a3zmf", "from_step": 4, "to_step": 5, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758102741195}
+{"type": "step_open", "txn_id": "txn_ahxthv3a3zmf", "step": 5, "ts_ms": 1758102741347, "pre_delay_ms": 100}
+{"type": "step_done", "txn_id": "txn_ahxthv3a3zmf", "step": 5, "ts_ms": 1758102741347}
+{"type": "transaction_close", "txn_id": "txn_ahxthv3a3zmf", "ts_ms": 1758102741347, "duration_ms": 711, "steps": 5}
+{"type": "transaction_open", "txn_id": "txn_8mdd4v30t9nt", "ts_ms": 1758102741347, "meta": {"timezone": "Europe/Berlin", "sim_version": "1.0.0"}}
+{"type": "step_open", "txn_id": "txn_8mdd4v30t9nt", "step": 1, "ts_ms": 1758102741449, "pre_delay_ms": 100}
+{"type": "step_done", "txn_id": "txn_8mdd4v30t9nt", "step": 1, "ts_ms": 1758102741449}
+{"type": "inter_step_wait", "txn_id": "txn_8mdd4v30t9nt", "from_step": 1, "to_step": 2, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758102741449}
+{"type": "step_open", "txn_id": "txn_8mdd4v30t9nt", "step": 2, "ts_ms": 1758102741602, "pre_delay_ms": 100}
+{"type": "step_done", "txn_id": "txn_8mdd4v30t9nt", "step": 2, "ts_ms": 1758102741602}
+{"type": "inter_step_wait", "txn_id": "txn_8mdd4v30t9nt", "from_step": 2, "to_step": 3, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758102741602}
+{"type": "step_open", "txn_id": "txn_8mdd4v30t9nt", "step": 3, "ts_ms": 1758102741754, "pre_delay_ms": 100}
+{"type": "step_done", "txn_id": "txn_8mdd4v30t9nt", "step": 3, "ts_ms": 1758102741754}
+{"type": "inter_step_wait", "txn_id": "txn_8mdd4v30t9nt", "from_step": 3, "to_step": 4, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758102741755}
+{"type": "step_open", "txn_id": "txn_8mdd4v30t9nt", "step": 4, "ts_ms": 1758102741906, "pre_delay_ms": 100}
+{"type": "step_done", "txn_id": "txn_8mdd4v30t9nt", "step": 4, "ts_ms": 1758102741906}
+{"type": "inter_step_wait", "txn_id": "txn_8mdd4v30t9nt", "from_step": 4, "to_step": 5, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758102741906}
+{"type": "step_open", "txn_id": "txn_8mdd4v30t9nt", "step": 5, "ts_ms": 1758102742058, "pre_delay_ms": 100}
+{"type": "step_done", "txn_id": "txn_8mdd4v30t9nt", "step": 5, "ts_ms": 1758102742058}
+{"type": "transaction_close", "txn_id": "txn_8mdd4v30t9nt", "ts_ms": 1758102742058, "duration_ms": 711, "steps": 5}
+{"type": "transaction_open", "txn_id": "txn_3w5uzbikcidk", "ts_ms": 1758102742058, "meta": {"timezone": "Europe/Berlin", "sim_version": "1.0.0"}}
+{"type": "step_open", "txn_id": "txn_3w5uzbikcidk", "step": 1, "ts_ms": 1758102742160, "pre_delay_ms": 100}
+{"type": "step_done", "txn_id": "txn_3w5uzbikcidk", "step": 1, "ts_ms": 1758102742160}
+{"type": "inter_step_wait", "txn_id": "txn_3w5uzbikcidk", "from_step": 1, "to_step": 2, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758102742160}
+{"type": "step_open", "txn_id": "txn_3w5uzbikcidk", "step": 2, "ts_ms": 1758102742312, "pre_delay_ms": 100}
+{"type": "step_done", "txn_id": "txn_3w5uzbikcidk", "step": 2, "ts_ms": 1758102742312}
+{"type": "inter_step_wait", "txn_id": "txn_3w5uzbikcidk", "from_step": 2, "to_step": 3, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758102742312}
+{"type": "step_open", "txn_id": "txn_3w5uzbikcidk", "step": 3, "ts_ms": 1758102742464, "pre_delay_ms": 100}
+{"type": "step_done", "txn_id": "txn_3w5uzbikcidk", "step": 3, "ts_ms": 1758102742464}
+{"type": "inter_step_wait", "txn_id": "txn_3w5uzbikcidk", "from_step": 3, "to_step": 4, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758102742464}
+{"type": "step_open", "txn_id": "txn_3w5uzbikcidk", "step": 4, "ts_ms": 1758102742617, "pre_delay_ms": 100}
+{"type": "step_done", "txn_id": "txn_3w5uzbikcidk", "step": 4, "ts_ms": 1758102742617}
+{"type": "inter_step_wait", "txn_id": "txn_3w5uzbikcidk", "from_step": 4, "to_step": 5, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758102742617}
+{"type": "step_open", "txn_id": "txn_3w5uzbikcidk", "step": 5, "ts_ms": 1758102742769, "pre_delay_ms": 100}
+{"type": "step_done", "txn_id": "txn_3w5uzbikcidk", "step": 5, "ts_ms": 1758102742769}
+{"type": "transaction_close", "txn_id": "txn_3w5uzbikcidk", "ts_ms": 1758102742769, "duration_ms": 711, "steps": 5}
+{"type": "transaction_open", "txn_id": "txn_wnnhj7xvg0fn", "ts_ms": 1758102742770, "meta": {"timezone": "Europe/Berlin", "sim_version": "1.0.0"}}
+{"type": "step_open", "txn_id": "txn_wnnhj7xvg0fn", "step": 1, "ts_ms": 1758102742870, "pre_delay_ms": 100}
+{"type": "step_done", "txn_id": "txn_wnnhj7xvg0fn", "step": 1, "ts_ms": 1758102742870}
+{"type": "inter_step_wait", "txn_id": "txn_wnnhj7xvg0fn", "from_step": 1, "to_step": 2, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758102742871}
+{"type": "step_open", "txn_id": "txn_wnnhj7xvg0fn", "step": 2, "ts_ms": 1758102743023, "pre_delay_ms": 100}
+{"type": "step_done", "txn_id": "txn_wnnhj7xvg0fn", "step": 2, "ts_ms": 1758102743023}
+{"type": "inter_step_wait", "txn_id": "txn_wnnhj7xvg0fn", "from_step": 2, "to_step": 3, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758102743023}
+{"type": "step_open", "txn_id": "txn_wnnhj7xvg0fn", "step": 3, "ts_ms": 1758102743176, "pre_delay_ms": 100}
+{"type": "step_done", "txn_id": "txn_wnnhj7xvg0fn", "step": 3, "ts_ms": 1758102743176}
+{"type": "inter_step_wait", "txn_id": "txn_wnnhj7xvg0fn", "from_step": 3, "to_step": 4, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758102743176}
+{"type": "step_open", "txn_id": "txn_wnnhj7xvg0fn", "step": 4, "ts_ms": 1758102743329, "pre_delay_ms": 100}
+{"type": "step_done", "txn_id": "txn_wnnhj7xvg0fn", "step": 4, "ts_ms": 1758102743329}
+{"type": "inter_step_wait", "txn_id": "txn_wnnhj7xvg0fn", "from_step": 4, "to_step": 5, "planned_wait_ms": 50, "outlier_injected": false, "ts_ms": 1758102743329}
+{"type": "step_open", "txn_id": "txn_wnnhj7xvg0fn", "step": 5, "ts_ms": 1758102743482, "pre_delay_ms": 100}
+{"type": "step_done", "txn_id": "txn_wnnhj7xvg0fn", "step": 5, "ts_ms": 1758102743484}
+{"type": "transaction_close", "txn_id": "txn_wnnhj7xvg0fn", "ts_ms": 1758102743484, "duration_ms": 714, "steps": 5}

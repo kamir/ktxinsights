@@ -181,3 +181,192 @@ The `ktxinsights` toolkit is designed to address observability gaps in Kafka's t
 *   **KIP-932: Queues for Kafka:** While not directly related to transactions, this KIP introduces new semantics for message acknowledgment and in-flight message tracking. The principles and techniques used in `ktxinsights` could be adapted to monitor the reliability and visibility of messages in these new queueing systems.
 
 The `ktxinsights` toolkit is designed to fill the monitoring gaps that still exist in the Kafka ecosystem, even with these valuable KIPs. By providing a business-aware view of transactional health, it empowers developers and SREs to build more reliable and observable systems on top of Kafka.
+
+## Appendix C: Analysis Flow
+
+This appendix provides a visual overview of the `ktxinsights` analysis flow.
+
+### Data Generator
+
+```mermaid
+graph TD
+    A[ktx-simulate] -->|Parameters| B(SimConfig)
+    B --> C{samples}
+    B --> D{concurrency}
+    B --> E{steps}
+    B --> F{delays}
+    B --> G{outlier_prob}
+    B --> H{failure_prob}
+
+    subgraph "Output Event Stream"
+        I[transaction_open]
+        J[step_open]
+        K[step_done]
+        L[inter_step_wait]
+        M[transaction_close]
+    end
+
+    A --> I
+    A --> J
+    A --> K
+    A --> L
+    A --> M
+```
+
+**How the Data Generator Works:**
+
+The `ktx-simulate` tool generates a stream of events that mimic a real-world transactional workflow. It is configured with a `SimConfig` object that defines the characteristics of the generated data.
+
+**Possible Patterns:**
+
+*   **High-Throughput:** High `samples` and `concurrency`, low `delays`.
+*   **Slow, Complex:** High `steps`, low `concurrency`, high `delays`.
+*   **Unreliable/Spiky:** High `outlier_prob` and `outlier_ms`.
+*   **Failing:** Non-zero `failure_prob`.
+
+### Transaction State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> open: transaction_open
+    open --> tentatively_closed: transaction_close (monitor)
+    tentatively_closed --> closed: transaction_close (validator)
+    open --> aborted: timeout
+    tentatively_closed --> aborted: timeout
+    open --> verified_aborted: coordinator update
+    tentatively_closed --> verified_aborted: coordinator update
+    closed --> [*]
+    aborted --> [*]
+    verified_aborted --> [*]
+```
+
+**How the Transaction State Machine Works:**
+
+The `ktx-aggregate` service builds a state machine for each transaction to track its lifecycle.
+
+1.  A transaction enters the `open` state when a `transaction_open` event is received.
+2.  When the `monitor` consumer sees a `transaction_close` event, the state transitions to `tentatively_closed`.
+3.  When the `validator` consumer sees the same `transaction_close` event, the state transitions to `closed`, and the transaction is considered successful.
+4.  If a transaction remains in the `open` or `tentatively_closed` state for too long, it is moved to the `aborted` state.
+5.  If the `CoordinatorCollector` reports that a transaction is no longer active on the broker, but it has not been confirmed as `closed`, it is moved to the `verified_aborted` state.
+
+### Consumers and Topics
+
+```mermaid
+graph TD
+    subgraph "Producers"
+        A[ktx-simulate]
+        B[ktx-replay]
+    end
+
+    subgraph "Kafka Topics"
+        C[workflow.transactions]
+        D[workflow.steps]
+        E[ktxinsights.coordinator.state]
+    end
+
+    subgraph "Consumers"
+        F[Monitor Consumer]
+        G[Validator Consumer]
+        H[Coordinator Consumer]
+    end
+
+    A --> C
+    A --> D
+    B --> C
+    B --> D
+
+    C --> F
+    D --> F
+    C --> G
+    D --> G
+    E --> H
+```
+
+**Which Consumer Reads from Which Topic:**
+
+*   **Monitor Consumer (`isolation.level=read_uncommitted`):** Reads from `workflow.transactions` and `workflow.steps` to get a real-time view of all events, including those in uncommitted transactions.
+*   **Validator Consumer (`isolation.level=read_committed`):** Reads from `workflow.transactions` and `workflow.steps` to get a view of only committed transactions.
+*   **Coordinator Consumer:** Reads from `ktxinsights.coordinator.state` to get the state of ongoing transactions directly from the Kafka brokers.
+
+### Analysis Components
+
+```mermaid
+graph TD
+    subgraph "Data Generation"
+        A[ktx-simulate] --> B[events.jsonl]
+    end
+
+    subgraph "Ground Truth"
+        B --> C[ktx-report] --> D[report_stats.json]
+    end
+
+    subgraph "Live Analysis"
+        B --> E[ktx-replay] --> F[Kafka]
+        F --> G[ktx-aggregate] --> H[Prometheus Metrics]
+        F --> I[ktx-collect] --> E
+    end
+
+    subgraph "Comparison"
+        D --> J[ktx-compare]
+        H --> J
+    end
+```
+
+**What Components are Included in the Analysis:**
+
+*   **`ktx-simulate`:** Generates the `events.jsonl` file.
+*   **`ktx-report`:** Generates the ground-truth `report_stats.json` file from the `events.jsonl` file.
+*   **`ktx-replay`:** Replays the `events.jsonl` file to a Kafka cluster.
+*   **`ktx-aggregate`:** Consumes from Kafka and exposes live metrics.
+*   **`ktx-collect`:** Fetches coordinator state from Kafka and publishes it to a topic for the aggregator.
+*   **`ktx-compare`:** Compares the ground-truth `report_stats.json` with the live metrics from the aggregator.
+
+### Producers and Topics
+
+```mermaid
+graph TD
+    subgraph "Producers"
+        A[ktx-simulate]
+        B[ktx-replay]
+        C[ktx-collect]
+    end
+
+    subgraph "Kafka Topics"
+        D[workflow.transactions]
+        E[workflow.steps]
+        F[ktxinsights.coordinator.state]
+    end
+
+    A --> D
+    A --> E
+    B --> D
+    B --> E
+    C --> F
+```
+
+**When is a Producer Writing to Which Topic:**
+
+*   **`ktx-simulate` & `ktx-replay`:** These tools produce events to the `workflow.transactions` and `workflow.steps` topics. `ktx-simulate` can produce directly to Kafka, while `ktx-replay` reads from a file and produces to Kafka.
+*   **`ktx-collect`:** This tool produces the state of ongoing transactions to the `ktxinsights.coordinator.state` topic.
+
+### Local vs. Kafka Mode
+
+```mermaid
+graph TD
+    subgraph "Local Mode"
+        A[ktx-simulate] --> B[events.jsonl]
+        B --> C[ktx-aggregate --file]
+    end
+
+    subgraph "Kafka Mode"
+        D[ktx-simulate] --> E[events.jsonl]
+        E --> F[ktx-replay] --> G[Kafka]
+        G --> H[ktx-aggregate]
+    end
+```
+
+**Compare the mode with and without Kafka - what are the differences?**
+
+*   **Local Mode:** The `ktx-aggregate` service reads events directly from a file. This is useful for testing the core logic of the aggregator and for generating reports without the need for a running Kafka cluster.
+*   **Kafka Mode:** The `ktx-replay` service reads events from a file and produces them to a Kafka cluster. The `ktx-aggregate` service then consumes these events from Kafka. This mode provides a more realistic test of the entire system, including the performance overhead of the Kafka cluster itself.
