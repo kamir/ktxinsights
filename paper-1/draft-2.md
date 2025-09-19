@@ -227,6 +227,17 @@ This scenario models a complex transaction where events are written to multiple 
 
 This scenario simulates a transaction that is aborted by the broker. It uses a synthetic "coordinator update" event in the test file to mimic the `CoordinatorCollector` reporting that the transaction is no longer active. This is used to validate the `verified_aborted` state transition and confirm that the system correctly identifies transactions that are aborted at the infrastructure level.
 
+### Timing and Replay Fidelity
+
+A crucial aspect of the "Generate then Replay" methodology is the faithful reproduction of the original workload's timing. The `ktx-replay` tool is designed to ensure that the inter-event timing and simulated gaps from the `events.jsonl` file are respected during the live replay.
+
+This is achieved through the following logic:
+1.  **Relative Timing Calculation:** The script calculates the time difference (delta) between the start of the original event sequence and the timestamp of each individual event.
+2.  **Scaled Replay Time:** This delta is then scaled by a `speed_factor` and added to the start time of the replay process. This determines the exact moment in the future when the event *should* be sent.
+3.  **Scheduled Sleep:** The script compares the calculated target replay time with the current time. If the script is ahead of schedule, it pauses (`time.sleep()`) until the correct moment arrives.
+
+This mechanism guarantees that the test scenarios are replayed with realistic timing, providing an accurate validation of the system's behavior under specific load and latency conditions.
+
 ## Appendix B: Relation to Kafka Improvement Proposals (KIPs)
 
 The `ktxinsights` toolkit is designed to address observability gaps in Kafka's transactional capabilities. Several Kafka Improvement Proposals (KIPs) are relevant to this work:
@@ -449,3 +460,67 @@ In a system with many long-running transactions, the memory required to hold the
 ### Polling the Coordinator
 
 The `CoordinatorCollector` relies on polling the Admin API. While the implementation includes backoff, jitter, and filtering to minimize impact, polling is inherently less efficient than a push-based or event-driven mechanism. On a large, multi-tenant Kafka cluster with thousands of unique `transactional.id`s, this could still introduce non-trivial load on the brokers and result in stale data between polling intervals. A more advanced solution might involve leveraging broker-level metrics or logs if they were to become available in future Kafka versions.
+
+## Appendix E: Configuration for a Custom Workflow
+
+This appendix describes how to configure the `ktxinsights` toolkit to monitor a specific set of topics for a custom business workflow.
+
+### Prerequisites
+
+1.  **Kafka Cluster Access:** The toolkit must have network access to your Kafka cluster's bootstrap servers.
+2.  **Application Instrumentation:** Your application must be configured to produce events with the expected schema (including `transaction_open`, `transaction_close`, and `transaction_step` types) to a defined set of Kafka topics.
+3.  **Python Environment:** A Python environment with the `ktxinsights` package and its dependencies (`confluent-kafka`, `prometheus_client`) installed.
+
+### Configuration Steps
+
+#### 1. Create a Kafka Properties File
+
+Create a new properties file (e.g., `config/my_workflow.properties`) that specifies the connection details for your Kafka cluster. At a minimum, this file must contain the `bootstrap.servers`.
+
+**Example `config/my_workflow.properties`:**
+```properties
+# Connection details for the staging Kafka cluster
+bootstrap.servers=kafka-broker-1:9092,kafka-broker-2:9092
+# Example for SASL authentication
+# security.protocol=SASL_SSL
+# sasl.mechanisms=PLAIN
+# sasl.username=<api-key>
+# sasl.password=<api-secret>
+```
+
+#### 2. Identify Your Topics
+
+Identify the Kafka topics where your application is producing the business workflow events. For this example, let's assume:
+*   Transaction open/close events are on `orders.transactions`.
+*   Transaction step events are on `orders.steps`.
+
+### Running the Toolkit
+
+To monitor your custom workflow, you need to run the `ktx-aggregate` and `ktx-collect` services, pointing them to your configuration file and topics.
+
+#### 1. Start the Coordinator Collector
+
+The collector monitors the broker's state and publishes its findings to a dedicated topic (default: `ktxinsights.coordinator.state`).
+
+```bash
+ktx-collect --config-file config/my_workflow.properties
+```
+
+#### 2. Start the Transaction Aggregator
+
+The aggregator is the core component that listens to your application topics and the collector topic. You must override the default topic names to match your workflow.
+
+```bash
+ktx-aggregate \
+    --config-file config/my_workflow.properties \
+    --kafka-topics orders.transactions orders.steps \
+    --listen-port 8001
+```
+
+**Explanation of Arguments:**
+
+*   `--config-file`: Specifies the path to your Kafka properties file.
+*   `--kafka-topics`: A space-separated list of the topics containing your business events. The aggregator will create two consumer groups to monitor these topics with different isolation levels.
+*   `--listen-port`: (Optional) Specifies the port for the Prometheus metrics endpoint. Defaults to `8000`.
+
+Once these services are running, the `ktxinsights` toolkit will be actively monitoring your `orders` workflow, and you can scrape the metrics from `http://localhost:8001/metrics`.
