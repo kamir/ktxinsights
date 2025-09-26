@@ -127,6 +127,7 @@ pip install -e .
 # Run the replayer
 ktx-replay --kafka-bootstrap broker:29092 \
 	--topic-tx ktx.transaction \
+    --randomize-tx-id true \
 	--file ../scenarios/00_minimal/events.jsonl
 ```
 
