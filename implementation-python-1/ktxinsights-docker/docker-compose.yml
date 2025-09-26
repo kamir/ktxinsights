@@ -1,0 +1,28 @@
+services:
+  ktx-aggregator:
+    build:
+      context: ../src
+      dockerfile: Dockerfile
+    environment:
+      - KTX_MODE=aggregator
+      # Prometheus metrics listen port
+      - KTX_LISTEN_PORT=8080
+      # Timeout in seconds to consider a transaction aborted
+      - ABORT_TIMEOUT_S=60
+      - KAFKA_BOOTSTRAP=broker:29092
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../src:/app
+
+  ktx-collector:
+    build:
+      context: ../src
+      dockerfile: Dockerfile
+    environment:
+      - KTX_MODE=collector
+      # Topic to check for ongoing transactions
+      - KTX_TOPIC_TX=ktx.transactions
+      - KAFKA_BOOTSTRAP=broker:29092
+    volumes:
+      - ../src:/app
