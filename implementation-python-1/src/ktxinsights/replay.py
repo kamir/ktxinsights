@@ -11,17 +11,13 @@ import json
 import sys
 import time
 from typing import List
+import uuid
 
-try:
-    from confluent_kafka import Producer
-except Exception:
-    Producer = None
+from confluent_kafka import Producer
 
 def create_kafka_producer(config: dict):
     """Create a Kafka producer instance."""
-    if Producer is None:
-        raise RuntimeError("confluent-kafka is not installed. Please run `pip install confluent-kafka`.")
-    
+
     # Default settings that can be overridden by the config file
     default_conf = {
         "socket.keepalive.enable": True,
@@ -44,13 +40,33 @@ def read_jsonl(path: str):
                 sys.stderr.write(f"Warning: Skipping malformed JSON line: {line}\n")
                 continue
 
-def replay_events(producer: Producer, events: List[dict], speed_factor: float, topic_txn: str, topic_steps: str):
+def __send_txn_event(producer: Producer, topic_txn: str, event: dict, txn_id: str, delivery_callback):
+    print(f"[DEBUG] Sending transaction event for txn_id {txn_id} at ts {event['ts_ms']}")
+    headers = [("txn_id", str(txn_id).encode("utf-8"))]
+    producer.produce(
+        topic=topic_txn,
+        key="tx_event",
+        value=json.dumps(event, ensure_ascii=False).encode("utf-8"),
+        headers=headers if headers else None,
+        callback=delivery_callback
+    )
+    # wait for message delivery
+    producer.flush()
+    # poll to trigger delivery callbacks
+    producer.poll(0)
+
+def replay_events(conf: dict[str,str], events: List[dict], speed_factor: float, topic_txn: str, randomize_tx_id: bool = False):
     """Replay events to Kafka, preserving relative timing."""
+
     print(f"Starting replay of {len(events)} events with speed factor {speed_factor}x...")
 
     if not events:
         print("No events to replay.")
         return
+
+    producers: dict[str, Producer] = {}
+    if randomize_tx_id:
+        txn_id_map: dict[str, str] = {}
 
     start_time = time.time()
     original_start_ts = events[0]['ts_ms']
@@ -64,38 +80,79 @@ def replay_events(producer: Producer, events: List[dict], speed_factor: float, t
             events_sent += 1
 
     for event in events:
-        # Determine the target topic based on the event type
-        event_type = event.get("type", "")
-        if "transaction" in event_type:
-            topic = topic_txn
-        else:
-            topic = topic_steps
-
         # Calculate the delay needed to preserve original timing
         original_current_ts = event['ts_ms']
         original_delta_ms = original_current_ts - original_start_ts
         target_replay_time = start_time + (original_delta_ms / 1000.0) / speed_factor
 
-        # Sleep if we are ahead of schedule
+        # check if txn_id exists, randomize if randomize_tx_id is enabled
+        txn_id = event.get('txn_id')
+        if txn_id is None:
+            print(f"[WARN] Event at ts {event['ts_ms']} missing txn_id. Skipping.")
+            continue
+        if randomize_tx_id:
+            if txn_id not in txn_id_map:
+                new_txn_id = str(uuid.uuid4())
+                txn_id_map[txn_id] = new_txn_id
+                print(f"[INFO] Mapping original txn_id {txn_id} to new random txn_id {new_txn_id}")
+            txn_id = txn_id_map[txn_id]
+
+        # check for transaction_open event to create a new producer if needed and start a transaction
+        # !! be aware that we do NOT close previous transactions automatically, this is an explicit generated
+        # fault of the simulation tool and should be handled by the broker/coordinator
+        if event.get("type") == "transaction_open":
+            # create producer
+            try:
+                copyconf = conf.copy()
+                copyconf.update({
+                    "transactional.id": txn_id,
+                })
+                producers[txn_id] = create_kafka_producer(copyconf)
+            except Exception as e:
+                print(f"[WARN] init_transactions: {e}")
+
+            # init transaction
+            try:
+                producers[txn_id].init_transactions()
+                print(f"[INFO] Transaction initialized at event ts {event['ts_ms']}")
+            except Exception as e:
+                print(f"[ERROR] init_transactions: {e}, removing producer for txn_id {txn_id}")
+                producers.pop(txn_id, None)
+                continue
+
+            # start transaction
+            try:
+                producers[txn_id].begin_transaction()
+                print(f"[INFO] Transaction started at event ts {event['ts_ms']}")
+            except Exception as e:
+                print(f"[ERROR] begin_transaction: {e}, removing producer for txn_id {txn_id}")
+                producers.pop(txn_id, None)
+                continue
+
+        # check if producer for txn_id exists and use it for current event
+        if txn_id is not None:
+            producer = producers.get(txn_id)
+            if producer is None:
+                print(f"[WARN] No producer found for txn_id {txn_id}. Skipping event at ts {event['ts_ms']}.")
+                continue
+
+        # wait until the target replay time
         sleep_duration = target_replay_time - time.time()
         if sleep_duration > 0:
+            print(f"[DEBUG] Sleeping for {sleep_duration} seconds to preserve event timing.")
             time.sleep(sleep_duration)
 
-        # Produce the message
-        producer.produce(
-            topic=topic,
-            value=json.dumps(event, ensure_ascii=False).encode("utf-8"),
-            callback=delivery_callback
-        )
-        producer.poll(0) # Non-blocking poll to trigger delivery callbacks
+        # send event
+        __send_txn_event(producer, topic_txn, event, txn_id, delivery_callback)
 
-    print("All events have been produced. Flushing producer...")
-    # The flush() method can take a timeout to ensure all messages are sent.
-    # We'll give it a generous 30 seconds to accommodate for network latency.
-    remaining = producer.flush(30)
-    if remaining > 0:
-        print(f"Warning: {remaining} messages failed to flush.")
-    else:
-        print("All messages flushed successfully.")
-    
+        # end transaction if event type is transaction_close
+        if event.get("type") == "transaction_close":
+            try:
+                producer.commit_transaction()
+                print(f"[INFO] Transaction committed at event ts {event['ts_ms']}")
+                # remove producer from dict after commit
+                producers.pop(txn_id, None)
+            except Exception as e:
+                print(f"[ERROR] commit_transaction: {e}")
+
     print(f"Replay complete. {events_sent} events successfully sent.")
